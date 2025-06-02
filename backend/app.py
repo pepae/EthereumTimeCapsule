@@ -132,17 +132,37 @@ def upload_ipfs():
 def pixelated(cid):
     # Example: store pixelated previews in ./pixelated/<cid>.png
     path = os.path.join("pixelated", f"{cid}.png")
+    print(f"Pixelated request for CID: {cid}, looking for file: {path}")
     if not os.path.exists(path):
+        print(f"File not found: {path}")
         return "Not found", 404
-    return send_from_directory("pixelated", f"{cid}.png")
+    print(f"Serving pixelated file: {path}")
+    try:
+        # Read file and return with proper headers for images
+        with open(path, 'rb') as f:
+            file_data = f.read()
+        return file_data, 200, {'Content-Type': 'image/png'}
+    except Exception as e:
+        print(f"Error serving pixelated file: {e}")
+        return "Error reading file", 500
 
 @app.route("/ipfs/<cid>")
 def serve_ipfs(cid):
     # Serve files from local IPFS storage
     path = os.path.join("ipfs_storage", cid)
+    print(f"IPFS request for CID: {cid}, looking for file: {path}")
     if not os.path.exists(path):
+        print(f"IPFS file not found: {path}")
         return "Not found", 404
-    return send_from_directory("ipfs_storage", cid)
+    print(f"Serving IPFS file: {path}")
+    try:
+        # Read file and return with proper headers
+        with open(path, 'rb') as f:
+            file_data = f.read()
+        return file_data, 200, {'Content-Type': 'application/octet-stream'}
+    except Exception as e:
+        print(f"Error serving IPFS file: {e}")
+        return "Error reading file", 500
 
 @app.route("/save_pixelated", methods=["POST"])
 def save_pixelated():
@@ -150,13 +170,17 @@ def save_pixelated():
         data = request.json
         cid = data.get("cid")
         preview_id = data.get("preview_id")
+        print(f"save_pixelated called with cid={cid}, preview_id={preview_id}")
         if not cid or not preview_id:
             return {"error": "Missing cid or preview_id"}, 400
         src = os.path.join("pixelated", f"{preview_id}.png")
         dst = os.path.join("pixelated", f"{cid}.png")
+        print(f"Renaming {src} to {dst}")
         if not os.path.exists(src):
+            print(f"Source file {src} does not exist")
             return {"error": "Preview not found"}, 404
         os.rename(src, dst)
+        print(f"Successfully renamed {src} to {dst}")
         return {"ok": True}
     except Exception as e:
         print("Error in /save_pixelated:", e)

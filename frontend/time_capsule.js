@@ -150,13 +150,13 @@ async function createCapsule() {
 
     // 5. Upload encrypted image to IPFS
     setStatus("Uploading encrypted image to IPFS…");
-    const imageCID = await uploadToIPFS(encryptedImg);
-
-    // Save pixelated image CID mapping on backend
-    await axios.post("http://localhost:5000/save_pixelated", {
+    const imageCID = await uploadToIPFS(encryptedImg);    // Save pixelated image CID mapping on backend
+    console.log("Saving pixelated mapping:", { cid: imageCID, preview_id: enc.pixelatedId });
+    const saveResp = await axios.post("http://localhost:5000/save_pixelated", {
       cid: imageCID,
       preview_id: enc.pixelatedId
     });
+    console.log("Save pixelated response:", saveResp.data);
 
     setStatus("Sending tx…");
     // STORE ENCRYPTED STORY AS BYTES (arrayify hex string)
@@ -183,6 +183,57 @@ async function createCapsule() {
   } catch (e) {
     console.error(e);
     setStatus(e.message);
+  }
+}
+
+// =============  DECRYPT IMAGE  =============
+async function decryptAndDisplayImage(capsuleId, imageCID, shutterIdentity) {
+  try {
+    console.log(`Decrypting image for capsule ${capsuleId}, CID: ${imageCID}`);
+    
+    // Get decryption key
+    const resp = await axios.get(`${shutterApi}/get_decryption_key`, {
+      params: { identity: shutterIdentity, registry: registryAddr }
+    });
+    const key = resp.data?.message?.decryption_key;
+    if (!key) {
+      console.log("Decryption key not available for image");
+      return;
+    }
+
+    // Fetch encrypted image from IPFS
+    const encryptedImageResp = await axios.get(`http://localhost:5000/ipfs/${imageCID}`, {
+      responseType: 'arraybuffer'
+    });
+    const encryptedImageHex = "0x" + Array.from(new Uint8Array(encryptedImageResp.data))
+      .map(b => b.toString(16).padStart(2, "0")).join("");
+
+    // Decrypt image
+    const decryptedImageHex = await window.shutter.decrypt(encryptedImageHex, key);
+    
+    // Convert hex to blob and create object URL
+    const decryptedImageBytes = new Uint8Array(
+      decryptedImageHex.slice(2).match(/.{2}/g).map(byte => parseInt(byte, 16))
+    );
+    const imageBlob = new Blob([decryptedImageBytes]);
+    const imageUrl = URL.createObjectURL(imageBlob);
+
+    // Find the capsule card and update the image
+    const allCapsules = document.querySelectorAll('.capsule-card');
+    for (const capsule of allCapsules) {
+      const summary = capsule.querySelector('summary');
+      if (summary && summary.textContent.includes(`ID #${capsuleId}`)) {
+        const img = capsule.querySelector('img');
+        if (img) {
+          img.src = imageUrl;
+          img.alt = "Decrypted image";
+          console.log(`Successfully decrypted and displayed image for capsule #${capsuleId}`);
+        }
+        break;
+      }
+    }
+  } catch (e) {
+    console.error(`Failed to decrypt image for capsule ${capsuleId}:`, e);
   }
 }
 
@@ -276,7 +327,8 @@ async function loadCapsules(){
     for(let i=0;i<batch && (capsuleOffset+i)<total;i++){
       const id = capsuleOffset+i;
       const c  = await contractRead.getCapsule(id);      const revealed = c.isRevealed;
-      const imgSrc = revealed ? ipfsURL(c.imageCID) : `http://localhost:5000/pixelated/${c.imageCID}`; // backend helper for pixelated others
+      // For unrevealed: show pixelated preview, for revealed: show placeholder initially, then decrypt
+      const imgSrc = revealed ? "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjBmMGYwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkRlY3J5cHRpbmcuLi48L3RleHQ+PC9zdmc+" : `http://localhost:5000/pixelated/${c.imageCID}`;
       container.insertAdjacentHTML("beforeend",`
         <details class="capsule-card ${revealed?'revealed':'unrevealed'}">
           <summary>
@@ -293,10 +345,14 @@ async function loadCapsules(){
               : `<button onclick="revealCapsule(${id},'${c.shutterIdentity}')">Attempt manual reveal</button>
                  <button onclick="decryptCapsule(${id},'${c.shutterIdentity}')">Decrypt (view only)</button>
                  <div class="decrypted-story"></div>`
-            }
-          </div>
+            }          </div>
         </details>
       `);
+      
+      // If revealed, decrypt the image asynchronously
+      if (revealed) {
+        decryptAndDisplayImage(id, c.imageCID, c.shutterIdentity);
+      }
     }
     capsuleOffset += batch;
   }catch(e){ console.error(e); setStatus("Load error: "+e.message); }
@@ -371,6 +427,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 // ===== expose to window for inline buttons =====
 window.revealCapsule = revealCapsule;
 window.decryptCapsule = decryptCapsule;
+window.decryptAndDisplayImage = decryptAndDisplayImage;
 
 /*  <script type="module" src="main.js"></script>
 <script type="module" src="time_capsule.js"></script>  */
