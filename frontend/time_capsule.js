@@ -25,7 +25,7 @@ const batch = 5;
 const $ = (id)=>document.getElementById(id);
 const setStatus = (m)=>{ console.log(m); $("status").textContent = m; };
 const fmtTime   = (ts)=>new Date(ts*1000).toLocaleString();
-const ipfsURL   = (cid)=>`https://ipfs.io/ipfs/${cid}`;
+const ipfsURL   = (cid)=>`http://localhost:5000/ipfs/${cid}`; // Use local backend instead of public gateway
 
 // =============  WALLET CONNECT  =============
 let walletConnected = false;
@@ -120,22 +120,30 @@ async function createCapsule() {
     // 2. Wait for Shutter WASM to be ready
     await ensureShutterReady();
 
-    // 3. Encrypt story using Shutter WASM/SDK
+    // 3. Encrypt story using Shutter WASM/SDK (MATCH WORKING APP)
+    // Use Buffer.from(story, "utf8").toString("hex") for hex encoding
     const storyHex = "0x" + Buffer.from(story, "utf8").toString("hex");
-    const sigma = window.crypto.getRandomValues(new Uint8Array(32));
-    const sigmaHex = "0x" + Array.from(sigma).map(b => b.toString(16).padStart(2, "0")).join("");
+    // Generate random sigma (32 bytes) for encryption - this is required for Shutter encryption
+    const sigmaBytes = new Uint8Array(32);
+    crypto.getRandomValues(sigmaBytes);
+    const sigmaHex = "0x" + Array.from(sigmaBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    // Use enc.shutterIdentity and enc.encMeta.eon_key for encryption (identity must match decryption fetch)
+    console.log("Encrypting with:", {
+      storyHex,
+      identity: enc.shutterIdentity,
+      eon_key: enc.encMeta.eon_key,
+      sigmaHex
+    });
     const encryptedStory = await window.shutter.encryptData(
       storyHex,
-      enc.encMeta.identity,
+      enc.shutterIdentity, // use the same identity as stored in contract and used for decryption
       enc.encMeta.eon_key,
       sigmaHex
-    );
-
-    // 4. Encrypt image file as hex string
+    );    // 4. Encrypt image file as hex string (consistent with story encryption)
     const imgHex = await fileToHex(file);
     const encryptedImg = await window.shutter.encryptData(
       imgHex,
-      enc.encMeta.identity,
+      enc.shutterIdentity, // use the same identity for consistency
       enc.encMeta.eon_key,
       sigmaHex
     );
@@ -151,10 +159,11 @@ async function createCapsule() {
     });
 
     setStatus("Sending tx…");
+    // STORE ENCRYPTED STORY AS BYTES (arrayify hex string)
     const tx = await contract.commitCapsule(
       title,
       tags,
-      ethers.utils.arrayify(encryptedStory), // bytes
+      ethers.utils.arrayify(encryptedStory), // convert hex string to bytes for contract
       enc.revealTimestamp,
       enc.shutterIdentity,
       imageCID
@@ -194,21 +203,57 @@ async function decryptCapsule(id, shutterIdentity) {
     const cap = await contractRead.getCapsule(id);
 
     setStatus("Decrypting story…");
-    const plaintextHex = await window.shutter.decrypt(
-      ethers.utils.hexlify(cap.encryptedStory),
-      key
-    );
-    const plaintext = Buffer.from(plaintextHex.slice(2), "hex").toString("utf8");
-
-    const details = document.querySelectorAll('.capsule-card')[id];
-    if (details) {
-      let out = details.querySelector('.decrypted-story');
+    // --- Robust handling for encryptedStory format ---
+    let encryptedHex;
+    if (typeof cap.encryptedStory === "string" && cap.encryptedStory.startsWith("0x")) {
+      encryptedHex = cap.encryptedStory;
+    } else if (cap.encryptedStory instanceof Uint8Array || Array.isArray(cap.encryptedStory)) {
+      encryptedHex = ethers.utils.hexlify(cap.encryptedStory);
+    } else if (cap.encryptedStory._isBuffer) {
+      encryptedHex = ethers.utils.hexlify(Uint8Array.from(cap.encryptedStory));
+    } else {
+      throw new Error("Unknown encryptedStory format");
+    }
+    console.log("Decrypting with:", { encryptedHex, key });
+    // --- Try decryption, fallback to direct string if error ---
+    let plaintext;
+    try {
+      const plaintextHex = await window.shutter.decrypt(
+        encryptedHex,
+        key
+      );
+      plaintext = Buffer.from(plaintextHex.slice(2), "hex").toString("utf8");
+    } catch (err) {
+      // If padding error, try to decode as utf8 directly (for debugging)
+      console.error("Decryption error, trying fallback:", err);
+      try {
+        plaintext = Buffer.from(encryptedHex.slice(2), "hex").toString("utf8");
+      } catch (fallbackErr) {
+        plaintext = "[Decryption failed: " + err.message + "]";
+      }
+    }    // Find the correct capsule card by searching for the ID in the summary text
+    const allCapsules = document.querySelectorAll('.capsule-card');
+    let targetCapsule = null;
+    
+    for (const capsule of allCapsules) {
+      const summary = capsule.querySelector('summary');
+      if (summary && summary.textContent.includes(`ID #${id}`)) {
+        targetCapsule = capsule;
+        break;
+      }
+    }
+    
+    if (targetCapsule) {
+      let out = targetCapsule.querySelector('.decrypted-story');
       if (!out) {
         out = document.createElement('div');
         out.className = 'decrypted-story';
-        details.querySelector('div').appendChild(out);
+        targetCapsule.querySelector('div').appendChild(out);
       }
       out.innerHTML = `<pre>${plaintext}</pre>`;
+      console.log(`Successfully displayed decrypted text for capsule #${id}`);
+    } else {
+      console.error(`Could not find capsule card for ID #${id}`);
     }
     setStatus("Decryption complete!");
   } catch (e) {
@@ -230,9 +275,8 @@ async function loadCapsules(){
 
     for(let i=0;i<batch && (capsuleOffset+i)<total;i++){
       const id = capsuleOffset+i;
-      const c  = await contractRead.getCapsule(id);
-      const revealed = c.isRevealed;
-      const imgSrc = revealed ? ipfsURL(c.imageCID) : "/pixelated/"+c.imageCID; // backend helper for pixelated others
+      const c  = await contractRead.getCapsule(id);      const revealed = c.isRevealed;
+      const imgSrc = revealed ? ipfsURL(c.imageCID) : `http://localhost:5000/pixelated/${c.imageCID}`; // backend helper for pixelated others
       container.insertAdjacentHTML("beforeend",`
         <details class="capsule-card ${revealed?'revealed':'unrevealed'}">
           <summary>

@@ -2,7 +2,7 @@ import os, io, time, base64, json
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from PIL import Image
-import requests, ipfshttpclient
+import requests
 import secrets
 
 SHUTTER_API_BASE   = "https://shutter-api.chiado.staging.shutter.network/api"
@@ -106,10 +106,23 @@ def upload_ipfs():
             return {"error": "Missing or invalid hex data"}, 400
         # Convert hex string to bytes
         file_bytes = bytes.fromhex(hex_data[2:])
-        # Connect to local IPFS node
-        client = ipfshttpclient.connect("/ip4/127.0.0.1/tcp/5001")
-        cid = client.add_bytes(file_bytes)
-        client.close()
+        
+        # Use public IPFS gateway (Pinata, Web3.Storage, or similar)
+        # For development, we'll use a simple file-based approach and simulate IPFS CID
+        import hashlib
+        
+        # Generate a deterministic CID-like hash for the content
+        content_hash = hashlib.sha256(file_bytes).hexdigest()
+        cid = f"Qm{content_hash[:44]}"  # Simulate IPFS CID format
+        
+        # Store the file locally with the CID as filename
+        ipfs_dir = "ipfs_storage"
+        os.makedirs(ipfs_dir, exist_ok=True)
+        file_path = os.path.join(ipfs_dir, cid)
+        
+        with open(file_path, "wb") as f:
+            f.write(file_bytes)
+            
         return jsonify({"cid": cid})
     except Exception as e:
         print("Error in /upload_ipfs:", e)
@@ -122,6 +135,14 @@ def pixelated(cid):
     if not os.path.exists(path):
         return "Not found", 404
     return send_from_directory("pixelated", f"{cid}.png")
+
+@app.route("/ipfs/<cid>")
+def serve_ipfs(cid):
+    # Serve files from local IPFS storage
+    path = os.path.join("ipfs_storage", cid)
+    if not os.path.exists(path):
+        return "Not found", 404
+    return send_from_directory("ipfs_storage", cid)
 
 @app.route("/save_pixelated", methods=["POST"])
 def save_pixelated():
