@@ -1,0 +1,51 @@
+[
+  {
+    "inputs": [
+      { "internalType": "string",  "name": "_title",          "type": "string" },
+      { "internalType": "string",  "name": "_tags",           "type": "string" },
+      { "internalType": "bytes",   "name": "_encryptedStory", "type": "bytes"  },
+      { "internalType": "uint256", "name": "_revealTime",     "type": "uint256"},
+      { "internalType": "string",  "name": "_shutterIdentity","type": "string" },
+      { "internalType": "string",  "name": "_imageCID",       "type": "string" }
+    ],
+    "name": "commitCapsule",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_id",        "type": "uint256" },
+      { "internalType": "string",  "name": "_plaintext", "type": "string"  }
+    ],
+    "name": "revealCapsule",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "_id", "type": "uint256" }],
+    "name": "getCapsule",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "address", "name": "creator",          "type": "address" },
+          { "internalType": "string",  "name": "title",            "type": "string"  },
+          { "internalType": "string",  "name": "tags",             "type": "string"  },
+          { "internalType": "bytes",   "name": "encryptedStory",   "type": "bytes"   },
+          { "internalType": "string",  "name": "decryptedStory",   "type": "string"  },
+          { "internalType": "bool",    "name": "isRevealed",       "type": "bool"    },
+          { "internalType": "uint256", "name": "revealTime",       "type": "uint256" },
+          { "internalType": "string",  "name": "shutterIdentity",  "type": "string"  },
+          { "internalType": "string",  "name": "imageCID",         "type": "string"  }
+        ],
+        "internalType": "struct TimeCapsule.Capsule",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  { "inputs": [], "name": "capsuleCount", "outputs":[{ "type":"uint256"}], "stateMutability":"view","type":"function" }
+]
