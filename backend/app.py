@@ -4,6 +4,33 @@ from flask_cors import CORS
 from PIL import Image
 import requests
 import secrets
+import hashlib
+
+# Import private config
+try:
+    import config
+    from config import PINATA_API_KEY, PINATA_SECRET_API_KEY, PINATA_GATEWAY
+    # Try to import JWT token for V3 API
+    PINATA_JWT = getattr(config, 'PINATA_JWT', None)
+    
+    # Check for V3 API (JWT) first, then fall back to V2 API
+    if PINATA_JWT and PINATA_JWT != "your_pinata_jwt_token_here":
+        PINATA_ENABLED = True
+        PINATA_VERSION = "v3"
+    elif PINATA_API_KEY and PINATA_SECRET_API_KEY and PINATA_API_KEY != "your_pinata_api_key_here":
+        PINATA_ENABLED = True
+        PINATA_VERSION = "v2"
+    else:
+        PINATA_ENABLED = False
+        PINATA_VERSION = None
+except ImportError:
+    print("Warning: config.py not found, Pinata integration disabled")
+    PINATA_ENABLED = False
+    PINATA_VERSION = None
+    PINATA_API_KEY = None
+    PINATA_SECRET_API_KEY = None
+    PINATA_GATEWAY = ""
+    PINATA_JWT = None
 
 SHUTTER_API_BASE   = "https://shutter-api.chiado.staging.shutter.network/api"
 SHUTTER_REGISTRY   = os.getenv("SHUTTER_REGISTRY_ADDRESS", "0x2693a4Fb363AdD4356e6b80Ac5A27fF05FeA6D9F")
@@ -29,10 +56,110 @@ def shutter_encrypt(hex_msg, enc_meta):
     r.raise_for_status()
     return r.json()["ciphertext"]
 
+def upload_to_pinata(file_bytes, filename=None):
+    """Upload file to Pinata IPFS using V3 or V2 API"""
+    if not PINATA_ENABLED:
+        raise Exception("Pinata not configured")
+    
+    if PINATA_VERSION == "v3":
+        return upload_to_pinata_v3(file_bytes, filename)
+    else:
+        return upload_to_pinata_v2(file_bytes, filename)
+
+def upload_to_pinata_v3(file_bytes, filename=None):
+    """Upload file to Pinata IPFS using V3 API"""
+    url = "https://uploads.pinata.cloud/v3/files"
+    
+    headers = {
+        'Authorization': f'Bearer {PINATA_JWT}'
+    }
+    
+    # Prepare the file data
+    files = {
+        'file': (filename or 'file', file_bytes, 'application/octet-stream')
+    }
+    
+    try:
+        print(f"Uploading {len(file_bytes)} bytes to Pinata V3 API...")
+        response = requests.post(url, files=files, headers=headers)
+        print(f"Pinata V3 response status: {response.status_code}")
+        print(f"Pinata V3 response: {response.text}")
+        response.raise_for_status()
+        result = response.json()
+        return result['data']['cid']
+    except requests.exceptions.RequestException as e:
+        print(f"Pinata V3 upload failed: {e}")
+        if hasattr(e, 'response') and e.response:
+            print(f"Response status: {e.response.status_code}")
+            print(f"Response text: {e.response.text}")
+        raise Exception(f"Pinata V3 upload failed: {str(e)}")
+
+def upload_to_pinata_v2(file_bytes, filename=None):
+    """Upload file to Pinata IPFS using V2 API (legacy)"""
+    url = "https://api.pinata.cloud/pinning/pinFileToIPFS"
+    
+    headers = {
+        'pinata_api_key': PINATA_API_KEY,
+        'pinata_secret_api_key': PINATA_SECRET_API_KEY
+    }
+    
+    # Prepare the file data
+    files = {
+        'file': (filename or 'encrypted_data', file_bytes, 'application/octet-stream')
+    }
+    
+    # Optional metadata
+    pinata_options = {
+        'cidVersion': 1,
+    }
+    
+    data = {
+        'pinataOptions': json.dumps(pinata_options)
+    }
+    
+    try:
+        print(f"Uploading {len(file_bytes)} bytes to Pinata V2 API...")
+        response = requests.post(url, files=files, data=data, headers=headers)
+        
+        # Debug response
+        print(f"Pinata V2 response status: {response.status_code}")
+        print(f"Pinata V2 response headers: {dict(response.headers)}")
+        
+        if response.status_code != 200:
+            print(f"Pinata V2 response text: {response.text}")
+        
+        response.raise_for_status()
+        result = response.json()
+        print(f"Successfully uploaded to Pinata V2: {result['IpfsHash']}")
+        return result['IpfsHash']
+    except requests.exceptions.RequestException as e:
+        print(f"Pinata V2 upload failed: {e}")
+        if hasattr(e, 'response') and e.response is not None:
+            print(f"Response content: {e.response.text}")
+        raise Exception(f"Pinata V2 upload failed: {str(e)}")
+
+def get_pinata_gateway_url(cid):
+    """Get the gateway URL for a Pinata IPFS file"""
+    if PINATA_GATEWAY:
+        return f"{PINATA_GATEWAY}/ipfs/{cid}"
+    else:
+        return f"https://gateway.pinata.cloud/ipfs/{cid}"
+
 # ---------- routes ----------
 @app.route("/health")
 def health():
     return {"ok": True, "ts": int(time.time())}
+
+@app.route("/system_info")
+def system_info():
+    """Return system configuration information"""
+    return jsonify({
+        "pinata_enabled": PINATA_ENABLED,
+        "pinata_version": PINATA_VERSION,
+        "pinata_gateway": PINATA_GATEWAY or "https://gateway.pinata.cloud",
+        "local_server": "http://localhost:5000",
+        "timestamp": int(time.time())
+    })
 
 @app.route("/submit_capsule", methods=["POST"])
 def submit_capsule():
@@ -104,26 +231,60 @@ def upload_ipfs():
         hex_data = data.get("hex")
         if not hex_data or not hex_data.startswith("0x"):
             return {"error": "Missing or invalid hex data"}, 400
+        
         # Convert hex string to bytes
         file_bytes = bytes.fromhex(hex_data[2:])
         
-        # Use public IPFS gateway (Pinata, Web3.Storage, or similar)
-        # For development, we'll use a simple file-based approach and simulate IPFS CID
-        import hashlib
-        
-        # Generate a deterministic CID-like hash for the content
+        # Generate a deterministic CID-like hash for the content (for local storage)
         content_hash = hashlib.sha256(file_bytes).hexdigest()
-        cid = f"Qm{content_hash[:44]}"  # Simulate IPFS CID format
+        local_cid = f"Qm{content_hash[:44]}"  # Simulate IPFS CID format
         
-        # Store the file locally with the CID as filename
+        # Store the file locally with the CID as filename (fallback)
         ipfs_dir = "ipfs_storage"
         os.makedirs(ipfs_dir, exist_ok=True)
-        file_path = os.path.join(ipfs_dir, cid)
+        file_path = os.path.join(ipfs_dir, local_cid)
         
         with open(file_path, "wb") as f:
             f.write(file_bytes)
+        
+        result = {
+            "cid": local_cid,
+            "local_url": f"http://localhost:5000/ipfs/{local_cid}",
+            "pinata_enabled": PINATA_ENABLED
+        }
+          # Try to upload to Pinata IPFS if configured
+        if PINATA_ENABLED:
+            try:
+                print("Uploading to Pinata IPFS...")
+                pinata_cid = upload_to_pinata(file_bytes)
+                pinata_url = get_pinata_gateway_url(pinata_cid)
+                
+                # Also store the file locally with the Pinata CID for faster access
+                pinata_file_path = os.path.join(ipfs_dir, pinata_cid)
+                with open(pinata_file_path, "wb") as f:
+                    f.write(file_bytes)
+                
+                result.update({
+                    "pinata_cid": pinata_cid,
+                    "pinata_url": pinata_url,
+                    "ipfs_urls": [pinata_url, f"http://localhost:5000/ipfs/{pinata_cid}"]
+                })
+                print(f"Successfully uploaded to Pinata: {pinata_cid}")
+                
+                # Use Pinata CID as primary CID if upload successful
+                result["cid"] = pinata_cid
+                
+            except Exception as e:
+                print(f"Pinata upload failed, using local storage only: {e}")
+                result.update({
+                    "pinata_error": str(e),
+                    "ipfs_urls": [f"http://localhost:5000/ipfs/{local_cid}"]
+                })
+        else:
+            result["ipfs_urls"] = [f"http://localhost:5000/ipfs/{local_cid}"]
             
-        return jsonify({"cid": cid})
+        return jsonify(result)
+        
     except Exception as e:
         print("Error in /upload_ipfs:", e)
         return {"error": str(e)}, 500
@@ -152,8 +313,28 @@ def serve_ipfs(cid):
     path = os.path.join("ipfs_storage", cid)
     print(f"IPFS request for CID: {cid}, looking for file: {path}")
     if not os.path.exists(path):
-        print(f"IPFS file not found: {path}")
+        print(f"IPFS file not found locally: {path}")
+        
+        # If Pinata is enabled, try to fetch from Pinata gateway
+        if PINATA_ENABLED:
+            try:
+                print(f"Attempting to fetch from Pinata gateway: {cid}")
+                pinata_url = get_pinata_gateway_url(cid)
+                response = requests.get(pinata_url, timeout=10)
+                response.raise_for_status()
+                
+                # Cache the file locally for future requests
+                os.makedirs("ipfs_storage", exist_ok=True)
+                with open(path, 'wb') as f:
+                    f.write(response.content)
+                print(f"Successfully fetched and cached from Pinata: {cid}")
+                
+                return response.content, 200, {'Content-Type': 'application/octet-stream'}
+            except Exception as e:
+                print(f"Failed to fetch from Pinata: {e}")
+        
         return "Not found", 404
+    
     print(f"Serving IPFS file: {path}")
     try:
         # Read file and return with proper headers

@@ -1,12 +1,12 @@
 {
   "testnet": {
-    "contract_address": "0x73883D34C7Bb1CFECd2d04188eCcAc0366218F81",
+    "contract_address": "0x941FB4Aff0F776B253A15AEC446D879Fcdd77EAa",
     "registry_address": "0x2693a4Fb363AdD4356e6b80Ac5A27fF05FeA6D9F",
     "shutter_api_base": "https://shutter-api.chiado.staging.shutter.network/api",
     "rpc_url": "https://rpc.gnosischain.com"
   },
   "mainnet": {
-    "contract_address": "PUT_MAINNET_CONTRACT_ADDRESS_HERE",
+    "contract_address": "0x941FB4Aff0F776B253A15AEC446D879Fcdd77EAa",
     "registry_address": "0x694e5de9345d39C148DA90e6939A3fd2142267D9",
     "shutter_api_base": "https://shutter-api.shutter.network/api",
     "rpc_url": "https://rpc.gnosischain.com"

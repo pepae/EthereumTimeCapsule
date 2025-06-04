@@ -21,6 +21,56 @@ let contractAddr, contractAbi, shutterApi, registryAddr;
 let capsuleOffset = 0;
 const batch = 5;
 
+// =============  SYSTEM INFO  =============
+async function loadSystemInfo() {
+  try {
+    const response = await axios.get("http://localhost:5000/system_info");
+    const info = response.data;
+    
+    console.log("System info:", info);
+    window.systemInfo = info;
+    
+    // Update status to show Pinata status
+    if (info.pinata_enabled) {
+      setStatus("System ready - Pinata IPFS enabled");
+    } else {
+      setStatus("System ready - Using local storage only");
+    }
+    
+    return info;
+  } catch (error) {
+    console.warn("Failed to load system info:", error);
+    setStatus("System ready - Backend connection issues");
+    return { pinata_enabled: false };
+  }
+}
+
+// Helper: get all possible IPFS URLs for a CID
+function getIPFSUrls(cid) {
+  const urls = [];
+  
+  // Try stored URLs first (from upload response)
+  if (window.ipfsUrls && window.ipfsUrls[cid]) {
+    urls.push(...window.ipfsUrls[cid]);
+  }
+  
+  // Add Pinata gateway if enabled
+  if (window.systemInfo?.pinata_enabled && window.systemInfo?.pinata_gateway) {
+    const pinataUrl = `${window.systemInfo.pinata_gateway}/ipfs/${cid}`;
+    if (!urls.includes(pinataUrl)) {
+      urls.push(pinataUrl);
+    }
+  }
+  
+  // Add local server as fallback
+  const localUrl = `http://localhost:5000/ipfs/${cid}`;
+  if (!urls.includes(localUrl)) {
+    urls.push(localUrl);
+  }
+  
+  return urls;
+}
+
 // =============  HELPERS  =============
 const $ = (id)=>document.getElementById(id);
 const setStatus = (m)=>{ console.log(m); $("status").textContent = m; };
@@ -46,10 +96,10 @@ async function connectWallet(manual = false){
       await eth.request({ method: "eth_requestAccounts" });
     }
     provider = new ethers.providers.Web3Provider(eth);
-    signer   = provider.getSigner();
-    const net= await provider.getNetwork();
+    signer   = provider.getSigner();    const net= await provider.getNetwork();
     if(net.chainId!==100) throw new Error("Please switch to Gnosis Chain (100)");
     contract = new ethers.Contract(contractAddr, contractAbi, signer);
+    console.log("💰 Wallet contract initialized with address:", contractAddr);
     setStatus("Wallet connected");
     walletConnected = true;
   } catch(e) {
@@ -82,11 +132,37 @@ async function fileToHex(file) {
   return "0x" + Array.from(new Uint8Array(arrayBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-// Helper: upload to IPFS via backend (or use a public IPFS API)
+// Helper: upload to IPFS via backend with Pinata integration
 async function uploadToIPFS(hexData) {
-  // Example: POST to your backend /upload_ipfs endpoint (implement this if needed)
   const res = await axios.post("http://localhost:5000/upload_ipfs", { hex: hexData });
-  return res.data.cid;
+  const result = res.data; // Returns {cid, local_url, pinata_url?, ipfs_urls, pinata_enabled}
+  
+  // Store IPFS URLs globally for redundant access
+  window.ipfsUrls = window.ipfsUrls || {};
+  if (result.cid && result.ipfs_urls) {
+    window.ipfsUrls[result.cid] = result.ipfs_urls;
+    console.log(`Stored ${result.ipfs_urls.length} URLs for CID ${result.cid}`);
+  }
+  
+  return result;
+}
+
+// Helper: initialize system info and load IPFS URLs
+async function initializeSystem() {
+  try {
+    const systemInfo = await axios.get("http://localhost:5000/system_info");
+    window.systemInfo = systemInfo.data;
+    console.log("System info loaded:", window.systemInfo);
+    
+    // Initialize IPFS URLs storage
+    window.ipfsUrls = window.ipfsUrls || {};
+    
+    return window.systemInfo;
+  } catch (e) {
+    console.warn("Could not load system info:", e);
+    window.systemInfo = { pinata_enabled: false };
+    return window.systemInfo;
+  }
 }
 
 // Wait for Shutter WASM to be ready
@@ -146,11 +222,15 @@ async function createCapsule() {
       enc.shutterIdentity, // use the same identity for consistency
       enc.encMeta.eon_key,
       sigmaHex
-    );
-
-    // 5. Upload encrypted image to IPFS
+    );    // 5. Upload encrypted image to IPFS with redundancy
     setStatus("Uploading encrypted image to IPFS…");
-    const imageCID = await uploadToIPFS(encryptedImg);    // Save pixelated image CID mapping on backend
+    const uploadResult = await uploadToIPFS(encryptedImg);
+    const imageCID = uploadResult.cid;
+    
+    console.log("Upload result:", uploadResult);
+    if (uploadResult.pinata_enabled && uploadResult.pinata_url) {
+      console.log("Image uploaded to Pinata:", uploadResult.pinata_url);
+    }// Save pixelated image CID mapping on backend
     console.log("Saving pixelated mapping:", { cid: imageCID, preview_id: enc.pixelatedId });
     const saveResp = await axios.post("http://localhost:5000/save_pixelated", {
       cid: imageCID,
@@ -186,6 +266,36 @@ async function createCapsule() {
   }
 }
 
+// Helper: fetch from redundant URLs with fallbacks
+async function fetchWithFallback(urls, options = {}) {
+  if (!urls || urls.length === 0) {
+    throw new Error("No URLs provided for fallback fetch");
+  }
+  
+  const errors = [];
+  
+  for (let i = 0; i < urls.length; i++) {
+    try {
+      console.log(`Attempting to fetch from URL ${i + 1}/${urls.length}: ${urls[i]}`);
+      const response = await axios.get(urls[i], {
+        timeout: i === 0 ? 5000 : 10000, // First URL gets shorter timeout
+        ...options
+      });
+      console.log(`Successfully fetched from: ${urls[i]}`);
+      return response;
+    } catch (error) {
+      const errorMsg = error.response ? `${error.response.status} ${error.response.statusText}` : error.message;
+      console.warn(`Failed to fetch from ${urls[i]}: ${errorMsg}`);
+      errors.push(`URL ${i + 1}: ${errorMsg}`);
+      
+      if (i === urls.length - 1) {
+        throw new Error(`All ${urls.length} URLs failed:\n${errors.join('\n')}`);
+      }
+      // Continue to next URL
+    }
+  }
+}
+
 // =============  DECRYPT IMAGE  =============
 async function decryptAndDisplayImage(capsuleId, imageCID, shutterIdentity) {
   try {
@@ -199,12 +309,14 @@ async function decryptAndDisplayImage(capsuleId, imageCID, shutterIdentity) {
     if (!key) {
       console.log("Decryption key not available for image");
       return;
-    }
-
-    // Fetch encrypted image from IPFS
-    const encryptedImageResp = await axios.get(`http://localhost:5000/ipfs/${imageCID}`, {
+    }    // Fetch encrypted image from IPFS with redundancy
+    const ipfsUrls = getIPFSUrls(imageCID);
+    
+    console.log(`Fetching encrypted image from IPFS, trying ${ipfsUrls.length} URLs...`);
+    const encryptedImageResp = await fetchWithFallback(ipfsUrls, {
       responseType: 'arraybuffer'
     });
+    
     const encryptedImageHex = "0x" + Array.from(new Uint8Array(encryptedImageResp.data))
       .map(b => b.toString(16).padStart(2, "0")).join("");
 
@@ -386,8 +498,14 @@ const NETWORK = "testnet"; // or "mainnet"
 // =============  INIT  =============
 window.addEventListener("DOMContentLoaded", async () => {
   try {
-    // load configs & ABI
-    const cfgAll = await (await fetch("public_config.json")).json();
+    // Initialize global storage
+    window.ipfsUrls = {};
+    
+    // Load system information (Pinata status, etc.)
+    await loadSystemInfo();
+      // load configs & ABI with cache busting
+    const cacheBuster = `?v=${Date.now()}`;
+    const cfgAll = await (await fetch(`public_config.json${cacheBuster}`)).json();
 
     // Always use the default_network for contract address and provider
     const fixedNetwork = cfgAll.default_network;
@@ -397,11 +515,9 @@ window.addEventListener("DOMContentLoaded", async () => {
     const shutterCfg = cfgAll[NETWORK];
 
     contractAddr = fixedCfg.contract_address;
-    contractAbi  = await (await fetch("contract_abi.json")).json();
+    contractAbi  = await (await fetch(`contract_abi.json${cacheBuster}`)).json();
     shutterApi   = shutterCfg.shutter_api_base;
-    registryAddr = shutterCfg.registry_address;
-
-    // read-only provider (fixed)
+    registryAddr = shutterCfg.registry_address;    // read-only provider (fixed)
     contractRead = new ethers.Contract(
       contractAddr,
       contractAbi,
