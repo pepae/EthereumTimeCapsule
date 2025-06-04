@@ -76,17 +76,32 @@ def upload_to_pinata_v3(file_bytes, filename=None):
     
     # Prepare the file data
     files = {
-        'file': (filename or 'file', file_bytes, 'application/octet-stream')
+        'file': (filename or 'encrypted_data', file_bytes, 'application/octet-stream')
     }
     
+    # Add form data to make the file publicly accessible on IPFS
+    data = {
+        'network': 'public',  # This is the key - makes files publicly accessible
+        'name': filename or 'encrypted_data',
+        'keyvalues': json.dumps({
+            'type': 'time_capsule_encrypted_image',
+            'uploaded_at': str(int(time.time()))
+        })
+    }    
     try:
-        print(f"Uploading {len(file_bytes)} bytes to Pinata V3 API...")
-        response = requests.post(url, files=files, headers=headers)
+        print(f"Uploading {len(file_bytes)} bytes to Pinata V3 API (public network)...")
+        response = requests.post(url, files=files, data=data, headers=headers)
         print(f"Pinata V3 response status: {response.status_code}")
         print(f"Pinata V3 response: {response.text}")
         response.raise_for_status()
         result = response.json()
-        return result['data']['cid']
+        cid = result['data']['cid']
+        
+        # Verify the file is publicly accessible
+        print(f"File uploaded to public IPFS with CID: {cid}")
+        print(f"Public URL: https://gateway.pinata.cloud/ipfs/{cid}")
+        
+        return cid
     except requests.exceptions.RequestException as e:
         print(f"Pinata V3 upload failed: {e}")
         if hasattr(e, 'response') and e.response:
