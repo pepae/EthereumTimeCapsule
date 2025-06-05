@@ -6,6 +6,10 @@ import requests
 import secrets
 import hashlib
 
+# Import database and blockchain sync
+from database import CapsuleDatabase
+from blockchain_sync import BlockchainSyncService
+
 # Import private config
 try:
     import config
@@ -38,6 +42,36 @@ ONE_YEAR_SECONDS   = 365 * 24 * 60 * 60
 
 app = Flask(__name__, static_folder="../frontend", static_url_path="/")
 CORS(app, origins=["http://localhost:8080"])                               # allow the JS frontend (http://localhost:8080)
+
+# Initialize database
+db = CapsuleDatabase("capsules.db")
+
+# Initialize blockchain sync service
+# Load contract configuration
+try:
+    with open("../frontend/public_config.json", "r") as f:
+        config_data = json.load(f)
+    
+    with open("../frontend/contract_abi.json", "r") as f:
+        contract_abi = json.load(f)
+    
+    # Use default network configuration
+    default_network = config_data.get("default_network", "testnet")
+    network_config = config_data[default_network]
+    
+    # Initialize blockchain sync service
+    sync_service = BlockchainSyncService(
+        rpc_url=network_config["rpc_url"],
+        contract_address=network_config["contract_address"],
+        contract_abi=contract_abi,
+        db=db
+    )
+    
+    print(f"📊 Database initialized, blockchain sync ready for {network_config['contract_address']}")
+    
+except Exception as e:
+    print(f"⚠️  Warning: Could not initialize blockchain sync: {e}")
+    sync_service = None
 
 # ---------- helpers ----------
 def pixelate(img, factor=12):
@@ -382,11 +416,283 @@ def save_pixelated():
         print("Error in /save_pixelated:", e)
         return {"error": str(e)}, 500
 
+# ---------- DATABASE API ENDPOINTS ----------
+@app.route("/api/capsules", methods=["GET"])
+def get_capsules():
+    """Get capsules from database with pagination"""
+    try:
+        offset = int(request.args.get("offset", 0))
+        limit = int(request.args.get("limit", 10))
+        revealed_only = request.args.get("revealed_only", "false").lower() == "true"
+        
+        capsules = db.get_capsules(offset=offset, limit=limit, revealed_only=revealed_only)
+        total_count = db.get_capsule_count()
+          # Format capsules for frontend compatibility
+        formatted_capsules = []
+        for capsule in capsules:
+            formatted_capsule = {
+                "id": capsule["id"],
+                "creator": capsule["creator"],
+                "title": capsule["title"],
+                "tags": capsule["tags"],
+                "encryptedStory": capsule["encrypted_story"].hex() if isinstance(capsule["encrypted_story"], bytes) else capsule["encrypted_story"],
+                "decryptedStory": capsule["decrypted_story"],
+                "isRevealed": bool(capsule["is_revealed"]),
+                "revealTime": capsule["reveal_time"],
+                "shutterIdentity": capsule["shutter_identity"],
+                "imageCID": capsule["image_cid"]
+            }
+            formatted_capsules.append(formatted_capsule)
+        
+        return jsonify({
+            "success": True,
+            "capsules": formatted_capsules,
+            "total_count": total_count,
+            "offset": offset,
+            "limit": limit,
+            "has_more": (offset + limit) < total_count
+        })
+        
+    except Exception as e:
+        print("Error in /api/capsules:", e)
+        return {"error": str(e)}, 500
+
+@app.route("/api/capsules/<int:capsule_id>", methods=["GET"])
+def get_capsule(capsule_id):
+    """Get a single capsule by ID"""
+    try:
+        capsule = db.get_capsule(capsule_id)
+        
+        if not capsule:
+            return {"error": "Capsule not found"}, 404
+          # Format for frontend compatibility
+        formatted_capsule = {
+            "id": capsule["id"],
+            "creator": capsule["creator"],
+            "title": capsule["title"],
+            "tags": capsule["tags"],
+            "encryptedStory": capsule["encrypted_story"].hex() if isinstance(capsule["encrypted_story"], bytes) else capsule["encrypted_story"],
+            "decryptedStory": capsule["decrypted_story"],
+            "isRevealed": bool(capsule["is_revealed"]),
+            "revealTime": capsule["reveal_time"],
+            "shutterIdentity": capsule["shutter_identity"],
+            "imageCID": capsule["image_cid"]
+        }
+        
+        return jsonify({
+            "success": True,
+            "capsule": formatted_capsule
+        })
+        
+    except Exception as e:
+        print(f"Error in /api/capsules/{capsule_id}:", e)
+        return {"error": str(e)}, 500
+
+@app.route("/api/capsules/search", methods=["GET"])
+def search_capsules():
+    """Search capsules by title, tags, or creator"""
+    try:
+        query = request.args.get("q", "").strip()
+        limit = int(request.args.get("limit", 10))
+        
+        if not query:
+            return {"error": "Search query is required"}, 400
+        
+        capsules = db.search_capsules(query, limit=limit)
+        
+        # Format capsules for frontend
+        formatted_capsules = []
+        for capsule in capsules:
+            formatted_capsule = {
+                "id": capsule["id"],
+                "creator": capsule["creator"],
+                "title": capsule["title"],
+                "tags": capsule["tags"],
+                "encryptedStory": capsule["encrypted_story"].hex() if isinstance(capsule["encrypted_story"], bytes) else capsule["encrypted_story"],
+                "decryptedStory": capsule["decrypted_story"],
+                "isRevealed": bool(capsule["is_revealed"]),
+                "revealTime": capsule["reveal_time"],
+                "shutterIdentity": capsule["shutter_identity"],
+                "imageCID": capsule["image_cid"]
+            }
+            formatted_capsules.append(formatted_capsule)
+        
+        return jsonify({
+            "success": True,
+            "capsules": formatted_capsules,
+            "query": query,
+            "count": len(formatted_capsules)
+        })
+        
+    except Exception as e:
+        print("Error in /api/capsules/search:", e)
+        return {"error": str(e)}, 500
+
+@app.route("/api/capsules/creator/<creator_address>", methods=["GET"])
+def get_capsules_by_creator(creator_address):
+    """Get capsules created by a specific address"""
+    try:
+        limit = int(request.args.get("limit", 10))
+        
+        capsules = db.get_capsules_by_creator(creator_address, limit=limit)
+        
+        # Format capsules for frontend
+        formatted_capsules = []
+        for capsule in capsules:
+            formatted_capsule = {
+                "id": capsule["id"],
+                "creator": capsule["creator"],
+                "title": capsule["title"],
+                "tags": capsule["tags"],
+                "encryptedStory": capsule["encrypted_story"],
+                "decryptedStory": capsule["decrypted_story"],
+                "isRevealed": bool(capsule["is_revealed"]),
+                "revealTime": capsule["reveal_time"],
+                "shutterIdentity": capsule["shutter_identity"],
+                "imageCID": capsule["image_cid"]
+            }
+            formatted_capsules.append(formatted_capsule)
+        
+        return jsonify({
+            "success": True,
+            "capsules": formatted_capsules,
+            "creator": creator_address,
+            "count": len(formatted_capsules)
+        })
+        
+    except Exception as e:
+        print(f"Error in /api/capsules/creator/{creator_address}:", e)
+        return {"error": str(e)}, 500
+
+@app.route("/api/sync/status", methods=["GET"])
+def get_sync_status():
+    """Get blockchain synchronization status"""
+    try:
+        if not sync_service:
+            return {"error": "Sync service not available"}, 503
+        
+        health = sync_service.get_sync_health()
+        db_status = db.get_sync_status()
+        
+        return jsonify({
+            "success": True,
+            "sync_health": health,
+            "database_status": db_status
+        })
+        
+    except Exception as e:
+        print("Error in /api/sync/status:", e)
+        return {"error": str(e)}, 500
+
+@app.route("/api/sync/force", methods=["POST"])
+def force_sync():
+    """Force immediate blockchain synchronization"""
+    try:
+        if not sync_service:
+            return {"error": "Sync service not available"}, 503
+        
+        result = sync_service.force_sync()
+        
+        return jsonify({
+            "success": True,
+            "sync_result": result
+        })
+        
+    except Exception as e:
+        print("Error in /api/sync/force:", e)
+        return {"error": str(e)}, 500
+
+@app.route("/api/stats", methods=["GET"])
+def get_stats():
+    """Get general statistics"""
+    try:
+        total_capsules = db.get_capsule_count()
+        recent_capsules = len(db.get_recent_capsules(hours=24, limit=100))
+        revealed_capsules = len(db.get_capsules(limit=1000, revealed_only=True))
+        
+        # Get sync health if available
+        sync_health = None
+        if sync_service:
+            try:
+                sync_health = sync_service.get_sync_health()
+            except:
+                pass
+        
+        return jsonify({
+            "success": True,
+            "statistics": {
+                "total_capsules": total_capsules,
+                "revealed_capsules": revealed_capsules,
+                "unrevealed_capsules": total_capsules - revealed_capsules,
+                "recent_capsules_24h": recent_capsules,
+                "database_healthy": sync_health is not None and sync_health.get("is_healthy", False),
+                "last_sync": sync_health.get("last_sync_time") if sync_health else None
+            }
+        })
+        
+    except Exception as e:
+        print("Error in /api/stats:", e)
+        return {"error": str(e)}, 500
+
+@app.route("/api/test/speed-comparison", methods=["GET"])
+def test_speed_comparison():
+    """Compare database vs blockchain response times"""
+    try:
+        import time
+        
+        # Test database speed
+        db_start = time.time()
+        db_capsules = db.get_capsules(limit=5)
+        db_time = time.time() - db_start
+        
+        # Test blockchain speed (if available)
+        blockchain_time = None
+        blockchain_capsules = []
+        
+        if sync_service and sync_service.contract:
+            try:
+                blockchain_start = time.time()
+                total_on_chain = sync_service.contract.functions.capsuleCount().call()
+                # Fetch first 5 capsules from blockchain
+                for i in range(min(5, total_on_chain)):
+                    sync_service.contract.functions.getCapsule(i).call()
+                blockchain_time = time.time() - blockchain_start
+                blockchain_capsules = list(range(min(5, total_on_chain)))
+            except Exception as e:
+                blockchain_time = f"Error: {e}"
+        
+        return jsonify({
+            "success": True,
+            "database": {
+                "time_seconds": round(db_time, 4),
+                "capsules_fetched": len(db_capsules),
+                "source": "SQLite Database"
+            },
+            "blockchain": {
+                "time_seconds": blockchain_time,
+                "capsules_fetched": len(blockchain_capsules) if isinstance(blockchain_capsules, list) else 0,
+                "source": "Gnosis Chain RPC"
+            },
+            "speedup_factor": round(blockchain_time / db_time, 2) if isinstance(blockchain_time, (int, float)) and db_time > 0 else "N/A"
+        })
+        
+    except Exception as e:
+        print("Error in /api/test/speed-comparison:", e)
+        return {"error": str(e)}, 500
+
 # ---------- static SPA ----------
 @app.route("/")
 def index():
     return send_from_directory(app.static_folder, "index.html")
 
 if __name__ == "__main__":
+    # Start blockchain sync service
+    if sync_service:
+        print("🔄 Starting blockchain sync service...")
+        sync_service.start_sync()
+        print("✅ Blockchain sync service started")
+    else:
+        print("⚠️  Running without blockchain sync")
+    
     print("🚀  backend on http://127.0.0.1:5000")
     app.run(debug=True)

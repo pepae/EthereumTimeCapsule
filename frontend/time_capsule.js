@@ -360,22 +360,24 @@ async function decryptCapsule(id, shutterIdentity) {
     if (!key) {
       setStatus("Decryption key not available yet! Please wait a bit and try again.");
       return;
+    }    setStatus("Fetching capsule data…");
+    // Use database API instead of direct blockchain call
+    console.log(`📦 Fetching capsule #${id} from DATABASE API (not blockchain)...`);
+    const response = await axios.get(`http://localhost:5000/api/capsules/${id}`);
+    if (!response.data.success) {
+      throw new Error(response.data.error || "Failed to fetch capsule");
     }
-
-    setStatus("Fetching capsule data…");
-    const cap = await contractRead.getCapsule(id);
-
-    setStatus("Decrypting story…");
-    // --- Robust handling for encryptedStory format ---
+    const cap = response.data.capsule;
+    console.log(`✅ Fetched capsule #${id} from DATABASE:`, cap);setStatus("Decrypting story…");
+    // --- Handle encrypted story from database API (hex string) ---
     let encryptedHex;
     if (typeof cap.encryptedStory === "string" && cap.encryptedStory.startsWith("0x")) {
       encryptedHex = cap.encryptedStory;
-    } else if (cap.encryptedStory instanceof Uint8Array || Array.isArray(cap.encryptedStory)) {
-      encryptedHex = ethers.utils.hexlify(cap.encryptedStory);
-    } else if (cap.encryptedStory._isBuffer) {
-      encryptedHex = ethers.utils.hexlify(Uint8Array.from(cap.encryptedStory));
+    } else if (typeof cap.encryptedStory === "string") {
+      // Database returns hex string without 0x prefix
+      encryptedHex = "0x" + cap.encryptedStory;
     } else {
-      throw new Error("Unknown encryptedStory format");
+      throw new Error("Unknown encryptedStory format from database");
     }
     console.log("Decrypting with:", { encryptedHex, key });
     // --- Try decryption, fallback to direct string if error ---
@@ -430,15 +432,31 @@ async function decryptCapsule(id, shutterIdentity) {
 }
 
 // =============  LOAD CAPSULES  =============
-async function loadCapsules(){
-  try{
-    const total = (await contractRead.capsuleCount()).toNumber();
+async function loadCapsules(){  try{
+    // Use database API instead of direct blockchain calls
+    console.log("📦 Loading capsules from DATABASE API (not blockchain)...");
+    const response = await axios.get("http://localhost:5000/api/capsules", {
+      params: {
+        offset: capsuleOffset,
+        limit: batch
+      }
+    });
+    
+    if (!response.data.success) {
+      throw new Error(response.data.error || "Failed to load capsules");
+    }
+    
+    const capsules = response.data.capsules;
+    const total = response.data.total_count;
+    console.log(`✅ Loaded ${capsules.length} capsules from DATABASE (total: ${total})`);
+    setStatus(`Loaded ${capsules.length} capsules from database cache`);
+    
     if(capsuleOffset>=total) return setStatus("No more capsules");
     const container = $("capsuleList");
 
-    for(let i=0;i<batch && (capsuleOffset+i)<total;i++){
-      const id = capsuleOffset+i;
-      const c  = await contractRead.getCapsule(id);      const revealed = c.isRevealed;
+    for(let i = 0; i < capsules.length; i++){
+      const c = capsules[i];
+      const id = c.id;const revealed = c.isRevealed;
       // For unrevealed: show pixelated preview, for revealed: show placeholder initially, then decrypt
       const imgSrc = revealed ? "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjBmMGYwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkRlY3J5cHRpbmcuLi48L3RleHQ+PC9zdmc+" : `http://localhost:5000/pixelated/${c.imageCID}`;
       container.insertAdjacentHTML("beforeend",`
@@ -478,10 +496,27 @@ async function revealCapsule(id,shutterIdentity){
       params:{ identity: shutterIdentity, registry: registryAddr }
     });
     const key = resp.data?.message?.decryption_key;
-    if(!key) return setStatus("Key not out yet!");
-
-    const cap = await contractRead.getCapsule(id);
-    const plaintextHex = await window.shutter.decrypt( ethers.utils.hexlify(cap.encryptedStory), key );
+    if(!key) return setStatus("Key not out yet!");    // Use database API instead of direct blockchain call
+    console.log(`📦 Fetching capsule #${id} from DATABASE API for reveal (not blockchain)...`);
+    const response = await axios.get(`http://localhost:5000/api/capsules/${id}`);
+    if (!response.data.success) {
+      throw new Error(response.data.error || "Failed to fetch capsule");
+    }
+    const cap = response.data.capsule;
+    console.log(`✅ Fetched capsule #${id} from DATABASE for reveal:`, cap);
+    
+    // Handle encrypted story from database API (hex string)
+    let encryptedHex;
+    if (typeof cap.encryptedStory === "string" && cap.encryptedStory.startsWith("0x")) {
+      encryptedHex = cap.encryptedStory;
+    } else if (typeof cap.encryptedStory === "string") {
+      // Database returns hex string without 0x prefix
+      encryptedHex = "0x" + cap.encryptedStory;
+    } else {
+      throw new Error("Unknown encryptedStory format from database");
+    }
+    
+    const plaintextHex = await window.shutter.decrypt(encryptedHex, key);
     const plaintext = Buffer.from(plaintextHex.slice(2),"hex").toString("utf8");
 
     setStatus("Sending reveal tx…");
