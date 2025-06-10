@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ethereum Time Capsule - Gallery</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Additional styles for gallery page */
+    .gallery-header {
+      text-align: center;
+      padding: 3rem 0;
+      color: white;
+    }
+    
+    .gallery-header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .gallery-controls {
+      background: white;
+      padding: 2rem;
+      border-radius: 15px;
+      margin: 2rem 0;
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .search-box {
+      flex: 1;
+      min-width: 300px;
+    }
+    
+    .search-box input {
+      width: 100%;
+      padding: 0.8rem;
+      border: 2px solid #e1e8ed;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    
+    .filter-controls {
+      display: flex;
+      gap: 1rem;
+    }
+    
+    .capsules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 2rem;
+      margin: 2rem 0;
+    }
+    
+    .capsule-card-gallery {
+      background: white;
+      border-radius: 15px;
+      padding: 1.5rem;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease;
+    }
+    
+    .capsule-card-gallery:hover {
+      transform: translateY(-5px);
+    }
+    
+    .capsule-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    
+    .capsule-id {
+      background: #667eea;
+      color: white;
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    
+    .capsule-status {
+      font-size: 0.8rem;
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    
+    .status-revealed {
+      background: #4CAF50;
+      color: white;
+    }
+    
+    .status-locked {
+      background: #FF9800;
+      color: white;
+    }
+    
+    .capsule-image {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 10px;
+      margin-bottom: 1rem;
+    }
+    
+    .capsule-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #2c3e50;
+    }
+    
+    .capsule-meta {
+      font-size: 0.9rem;
+      color: #7f8c8d;
+      margin-bottom: 1rem;
+    }
+    
+    .capsule-story {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #2c3e50;
+      margin-bottom: 1rem;
+      max-height: 100px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .capsule-story.expanded {
+      max-height: none;
+    }
+    
+    .story-fade {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 30px;
+      background: linear-gradient(transparent, white);
+    }
+    
+    .capsule-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    
+    .btn-small {
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-decrypt {
+      background: #2196F3;
+      color: white;
+    }
+    
+    .btn-reveal {
+      background: #4CAF50;
+      color: white;
+    }
+    
+    .btn-expand {
+      background: #f8f9fa;
+      color: #667eea;
+      border: 1px solid #e1e8ed;
+    }
+    
+    .load-more-container {
+      text-align: center;
+      margin: 3rem 0;
+    }
+    
+    @media (max-width: 768px) {
+      .gallery-controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .search-box {
+        min-width: auto;
+      }
+      
+      .filter-controls {
+        justify-content: center;
+      }
+      
+      .capsules-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <h1 class="logo">🕰️ Ethereum Time Capsule</h1>
+      <div class="wallet-section">
+        <div id="wallet-status" class="wallet-status">❌ Wallet Not Connected</div>
+        <button id="connect-wallet-btn" class="btn-secondary">Connect Wallet</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Gallery Header -->
+  <section class="gallery-header">
+    <div class="container">
+      <h1>Time Capsule Gallery</h1>
+      <p>Explore messages from the past and present, preserved forever on the blockchain</p>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="container">
+      
+      <!-- Gallery Controls -->
+      <div class="gallery-controls">
+        <div class="search-box">
+          <input type="text" id="search-input" placeholder="Search capsules by title, tags, or creator...">
+        </div>
+        <div class="filter-controls">
+          <button id="filter-all" class="btn-secondary">All</button>
+          <button id="filter-revealed" class="btn-secondary">Revealed</button>
+          <button id="filter-locked" class="btn-secondary">Locked</button>
+        </div>
+        <button id="search-btn" class="btn-primary">Search</button>
+      </div>
+
+      <!-- Loading indicator -->
+      <div id="loading-indicator" style="text-align: center; margin: 2rem 0; display: none;">
+        <div class="spinner"></div>
+        <p>Loading capsules from database...</p>
+      </div>
+
+      <!-- Capsules Grid -->
+      <div id="capsules-grid" class="capsules-grid">
+        <!-- Capsules will be loaded here -->
+      </div>
+
+      <!-- Load More -->
+      <div class="load-more-container">
+        <button id="load-more-btn" class="btn-primary">Load More Capsules</button>
+        <p id="load-status" style="margin-top: 1rem; color: #7f8c8d;"></p>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2025 Ethereum Time Capsule. Built with ❤️ for the future.</p>
+      <p><a href="create.html" style="color: #4CAF50;">Create Your Own Capsule</a> | <a href="index.html" style="color: #4CAF50;">Back to Home</a></p>
+    </div>
+  </footer>
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+  
+  <!-- BLST WASM runtime (required for custom shutter crypto) -->
+  <script src="https://cdn.jsdelivr.net/npm/@shutter-network/blst@0.1.7/dist/blst.min.js"></script>
+  
+  <!-- Custom Shutter WASM loader and app logic -->
+  <script src="blst.js"></script>
+  <script type="module" src="main.js"></script>
+  <script type="module" src="gallery.js"></script>
+</body>
+</html>

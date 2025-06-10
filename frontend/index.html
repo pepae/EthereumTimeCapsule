@@ -2,70 +2,236 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Ethereum Time Capsule</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <!-- simple styling, adjust or replace with your own CSS -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ethereum Time Capsule - Home</title>
+  <link rel="stylesheet" href="styles.css">
   <style>
-    :root { font-family: system-ui, sans-serif; }
-    body  { max-width: 750px; margin: 0 auto; padding: 1rem; }
-    h1    { text-align: center; margin-top: 0; }
-    form  { margin-bottom: 1.25rem; }
-    input, textarea { width: 100%; padding: .55rem .65rem; margin: .3rem 0 .9rem;
-                      font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; }
-    textarea { resize: vertical; }
-    button { cursor: pointer; padding: .55rem 1rem; font-size: 1rem;
-             border: none; color: #fff; background: #037; border-radius: 4px; }
-    button:disabled { background: #777; }
-    #status { margin: .75rem 0; font-style: italic; color: #444; }
-    .capsule-card { border: 1px solid #d0d0d0; border-radius: 6px; padding: .6rem 1rem;
-                    margin: .9rem 0; }
-    .capsule-card summary { cursor: pointer; }
-    .capsule-card img { max-width: 100%; border-radius: 4px; margin: .4rem 0; }
-    details[open] summary { margin-bottom: .5rem; }
+    /* Additional styles for home page */
+    .hero {
+      text-align: center;
+      padding: 5rem 0;
+      color: white;
+    }
+    
+    .hero h1 {
+      font-size: 3.5rem;
+      margin-bottom: 1.5rem;
+      font-weight: 700;
+    }
+    
+    .hero p {
+      font-size: 1.3rem;
+      margin-bottom: 3rem;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      opacity: 0.9;
+    }
+    
+    .hero-actions {
+      display: flex;
+      gap: 2rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .features {
+      background: white;
+      padding: 5rem 0;
+      margin: 3rem 0;
+      border-radius: 20px;
+    }
+    
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 3rem;
+      margin-top: 3rem;
+    }
+    
+    .feature-card {
+      text-align: center;
+      padding: 2rem;
+    }
+    
+    .feature-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+    
+    .feature-card h3 {
+      margin-bottom: 1rem;
+      color: #2c3e50;
+    }
+    
+    .feature-card p {
+      color: #7f8c8d;
+      line-height: 1.6;
+    }
+    
+    .stats-section {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 3rem;
+      margin: 3rem 0;
+      color: white;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+    
+    .stat-item {
+      text-align: center;
+    }
+    
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      display: block;
+    }
+    
+    .stat-label {
+      opacity: 0.8;
+      font-size: 0.9rem;
+    }
+    
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+      
+      .hero-actions {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
   </style>
 </head>
 <body>
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <h1 class="logo">🕰️ Ethereum Time Capsule</h1>
+      <nav>
+        <a href="gallery.html" class="btn-secondary">View Gallery</a>
+      </nav>
+    </div>
+  </header>
 
-  <h1>Ethereum Time Capsule</h1>
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <h1>Be Part of Ethereum's Living History</h1>
+      <p>To celebrate Ethereum's 10th anniversary, we've created an Ethereum time capsule — privately sealed now, revealed later, and immutably recorded onchain forever.</p>
+      
+      <div class="hero-actions">
+        <a href="create.html" class="btn-primary">Add Your Entry</a>
+        <a href="gallery.html" class="btn-secondary">View Gallery</a>
+      </div>
+    </div>
+  </section>
 
-  <!-- ────── Create Capsule Form ────── -->
-  <form id="capForm">
-    <input  id="capTitle"  placeholder="Title">
-    <input  id="capTags"   placeholder="Tags (comma-separated)">
-    <textarea id="capStory" rows="5" placeholder="Your secret story…"></textarea>
-    <input type="file" id="capImage" accept="image/*">
-    <button type="button" id="createCapsule-btn">Create Capsule</button>
-  </form>
-  <!-- live status from JS -->
-  <p id="status">Status: ready</p>
-  
-  <!-- Database cache indicator -->
-  <div id="cache-status" style="background: #e8f5e8; border: 1px solid #4caf50; padding: 8px; border-radius: 4px; margin: 10px 0; font-size: 14px;">
-    📦 <strong>Database Cache Active:</strong> Loading from SQLite database (synced every 10s) instead of direct blockchain queries for faster performance
-  </div>
+  <!-- Features Section -->
+  <section class="features">
+    <div class="container">
+      <div class="step-header">
+        <h2>How It Works</h2>
+        <p>Create your digital legacy in four simple steps</p>
+      </div>
+      
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">✍️</div>
+          <h3>Write Your Message</h3>
+          <p>Share your thoughts, memories, or predictions for the future. Add a personal image to make it special.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">🔐</div>
+          <h3>Encrypt with Shutter</h3>
+          <p>Your content is encrypted using cutting-edge Shutter Network technology, ensuring privacy until the reveal time.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">⛓️</div>
+          <h3>Store on Blockchain</h3>
+          <p>Your encrypted capsule is permanently stored on the Ethereum blockchain, making it immutable and eternal.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">🎉</div>
+          <h3>Reveal & Share</h3>
+          <p>When the time comes, your capsule unlocks automatically and becomes part of Ethereum's permanent history.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <!-- immediate preview of freshly-created capsule -->
-  <div id="previewList"></div>
+  <!-- Stats Section -->
+  <section class="stats-section">
+    <div class="container">
+      <div class="step-header">
+        <h2 style="color: white;">Community Stats</h2>
+        <p style="color: rgba(255,255,255,0.8);">Join thousands of others preserving their digital legacy</p>
+      </div>
+      
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span id="total-capsules" class="stat-number">0</span>
+          <span class="stat-label">Total Capsules</span>
+        </div>
+        
+        <div class="stat-item">
+          <span id="revealed-capsules" class="stat-number">0</span>
+          <span class="stat-label">Revealed</span>
+        </div>
+        
+        <div class="stat-item">
+          <span id="locked-capsules" class="stat-number">0</span>
+          <span class="stat-label">Still Locked</span>
+        </div>
+        
+        <div class="stat-item">
+          <span class="stat-number">∞</span>
+          <span class="stat-label">Years Preserved</span>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <h2>Public Capsules</h2>
-  <div id="capsuleList"></div>
-  <button id="loadMore-btn">Load more</button>
-  <button id="connectWallet-btn" style="margin-bottom:1rem;">Connect with MetaMask</button>
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2025 Ethereum Time Capsule. Built with ❤️ for the future.</p>
+      <p>Powered by <a href="https://ethereum.org" style="color: #4CAF50;">Ethereum</a> and <a href="https://shutter.network" style="color: #4CAF50;">Shutter Network</a></p>
+    </div>
+  </footer>
 
-  <!-- ────── JS libraries ────── -->
-  <!-- WalletConnect provider (UMD) registers window.WalletConnectProvider -->
-  <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
-
-  <!-- Optional markdown rendering for revealed stories -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
-  <!-- BLST WASM runtime (required for custom shutter crypto) -->
-  <script src="https://cdn.jsdelivr.net/npm/@shutter-network/blst@0.1.7/dist/blst.min.js"></script>
-
-  <!-- Custom Shutter WASM loader and app logic -->
-  <script src="blst.js"></script>
-  <script type="module" src="main.js"></script>
-  <script type="module" src="time_capsule.js"></script>
+  <!-- Scripts -->
+  <script type="module">
+    // Load stats from the database API
+    async function loadStats() {
+      try {
+        const response = await fetch('http://localhost:5000/api/stats');
+        const data = await response.json();
+        
+        if (data.success) {
+          document.getElementById('total-capsules').textContent = data.stats.total_capsules;
+          document.getElementById('revealed-capsules').textContent = data.stats.revealed_capsules;
+          document.getElementById('locked-capsules').textContent = data.stats.locked_capsules;
+        }
+      } catch (error) {
+        console.error('Failed to load stats:', error);
+      }
+    }
+    
+    // Load stats when page loads
+    document.addEventListener('DOMContentLoaded', loadStats);
+  </script>
 </body>
 </html>
