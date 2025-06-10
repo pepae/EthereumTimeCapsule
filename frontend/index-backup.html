@@ -69,7 +69,9 @@
       margin: 0 auto;
       overflow: hidden;
       position: relative;
-    }    /* Header */
+    }
+
+    /* Header */
     .header {
       background: var(--eth2);
       padding: 12px 20px 12px 20px;
@@ -79,7 +81,6 @@
       width: 100%;
       height: 68px;
       min-width: 272px;
-      position: relative;
     }
 
     .logo {
@@ -95,82 +96,18 @@
 
     .logo-icon {
       font-size: 24px;
-    }    .menu {
+    }
+
+    .menu {
       width: 52px;
       height: 52px;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
       background: var(--d9d9d9);
       border-radius: 12px;
       cursor: pointer;
-      gap: 4px;
-      padding: 14px 12px;
-      transition: all 0.3s ease;
-    }
-
-    .menu:hover {
-      background: #c5c5c5;
-    }
-
-    .menu-line {
-      width: 28px;
-      height: 2px;
-      background-color: var(--eth3);
-      border-radius: 1px;
-      transition: all 0.3s ease;
-    }    /* Menu dropdown */
-    .menu-dropdown {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: var(--eth2);
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-family: var(--eth1-font-family);
       font-size: 24px;
-      font-weight: 400;
-      transform: translateY(-100%);
-      transition: transform 0.3s ease-in-out;
-    }
-
-    .menu-dropdown.show {
-      transform: translateY(0);
-    }
-
-    .menu-dropdown a {
-      display: block;
-      padding: 20px 0;
-      text-decoration: none;
-      color: var(--eth3);
-      text-align: center;
-      width: 100%;
-      transition: opacity 0.2s ease;
-    }
-
-    .menu-dropdown a:hover {
-      opacity: 0.7;
-    }
-
-    /* Add a back button */
-    .menu-back {
-      position: absolute;
-      bottom: 40px;
-      left: 40px;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 24px;
-      color: var(--eth3);
     }
 
     /* Body */
@@ -209,12 +146,6 @@
       height: 222px;
       position: relative;
       overflow: hidden;
-      cursor: pointer;
-      transition: transform 0.3s ease;
-    }
-
-    .intro-thumbnail:hover {
-      transform: translateY(-5px);
     }
 
     .rectangle-143 {
@@ -239,7 +170,6 @@
       position: absolute;
       left: 0;
       top: 111.02px;
-      z-index: 10;
     }
 
     .issued-by-xyz {
@@ -301,21 +231,11 @@
       top: 0.32px;
       object-fit: cover;
       background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
-    }
-
-    .image-placeholder {
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 32px;
       color: #999;
-      background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
-      border-radius: 12px;
-      width: 162px;
-      height: 111px;
-      position: absolute;
-      left: 0;
-      top: 0.32px;
     }
 
     /* Copy section */
@@ -444,203 +364,190 @@
     }
   </style>
 </head>
+    
+    .feature-card {
+      text-align: center;
+      padding: 2rem;
+    }
+    
+    .feature-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+    
+    .feature-card h3 {
+      margin-bottom: 1rem;
+      color: #2c3e50;
+    }
+    
+    .feature-card p {
+      color: #7f8c8d;
+      line-height: 1.6;
+    }
+    
+    .stats-section {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 3rem;
+      margin: 3rem 0;
+      color: white;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+    
+    .stat-item {
+      text-align: center;
+    }
+    
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      display: block;
+    }
+    
+    .stat-label {
+      opacity: 0.8;
+      font-size: 0.9rem;
+    }
+    
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+      
+      .hero-actions {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+  </style>
+</head>
 <body>
-  <div class="home-container">
-    <!-- Header -->
-    <div class="header">
-      <a href="index.html" class="logo">
-        <span class="logo-icon">🕰️</span>
-        <span>Time Capsule</span>
-      </a>      <div class="menu" id="menuButton">
-        <div class="menu-line"></div>
-        <div class="menu-line"></div>
-        <div class="menu-line"></div>
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <h1 class="logo">🕰️ Ethereum Time Capsule</h1>
+      <nav>
+        <a href="gallery.html" class="btn-secondary">View Gallery</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <h1>Be Part of Ethereum's Living History</h1>
+      <p>To celebrate Ethereum's 10th anniversary, we've created an Ethereum time capsule — privately sealed now, revealed later, and immutably recorded onchain forever.</p>
+      
+      <div class="hero-actions">
+        <a href="create.html" class="btn-primary">Add Your Entry</a>
+        <a href="gallery.html" class="btn-secondary">View Gallery</a>
       </div>
     </div>
+  </section>
 
-    <!-- Body -->
-    <div class="body">
-      <!-- Thumbnail carousel -->
-      <div class="thumb-carousel" id="thumbCarousel">
-        <!-- Sample capsules will be loaded here -->
-        <div class="intro-thumbnail loading">
-          <div class="rectangle-143"></div>
-          <div class="content">
-            <div class="issued-by-xyz">issued by xyz</div>
-            <div class="title-on-two-lines">
-              This is the title<br />
-              on two lines
-            </div>
-            <div class="onchain-values-container">
-              <div class="onchain-values">#OnchainValues</div>
-            </div>
-          </div>
-          <div class="image-placeholder">🔒</div>
+  <!-- Features Section -->
+  <section class="features">
+    <div class="container">
+      <div class="step-header">
+        <h2>How It Works</h2>
+        <p>Create your digital legacy in four simple steps</p>
+      </div>
+      
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">✍️</div>
+          <h3>Write Your Message</h3>
+          <p>Share your thoughts, memories, or predictions for the future. Add a personal image to make it special.</p>
         </div>
         
-        <div class="intro-thumbnail loading">
-          <div class="rectangle-143"></div>
-          <div class="content">
-            <div class="issued-by-xyz">issued by xyz</div>
-            <div class="title-on-two-lines">
-              This is the title<br />
-              on two lines
-            </div>
-            <div class="onchain-values-container">
-              <div class="onchain-values">#OnchainValues</div>
-            </div>
-          </div>
-          <div class="image-placeholder">🔒</div>
-        </div>
-      </div>
-
-      <!-- Copy section -->
-      <div class="copy">
-        <div class="main-heading">
-          Be part<br />
-          of Ethereum's<br />
-          living history
+        <div class="feature-card">
+          <div class="feature-icon">🔐</div>
+          <h3>Encrypt with Shutter</h3>
+          <p>Your content is encrypted using cutting-edge Shutter Network technology, ensuring privacy until the reveal time.</p>
         </div>
         
-        <div class="intro-copy">
-          To celebrate Ethereum's 10th anniversary, we've created an Ethereum time capsule<br />
-          — privately sealed now, revealed later, and immutably recorded onchain forever.
+        <div class="feature-card">
+          <div class="feature-icon">⛓️</div>
+          <h3>Store on Blockchain</h3>
+          <p>Your encrypted capsule is permanently stored on the Ethereum blockchain, making it immutable and eternal.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">🎉</div>
+          <h3>Reveal & Share</h3>
+          <p>When the time comes, your capsule unlocks automatically and becomes part of Ethereum's permanent history.</p>
         </div>
       </div>
-
-      <a href="create.html" class="button-add-your-entry">
-        <div class="add-your-entry">add your entry</div>
-      </a>
     </div>
+  </section>
 
-    <!-- Footer -->
-    <div class="footer">
-      <a href="gallery.html" class="learn-more">learn more</a>
+  <!-- Stats Section -->
+  <section class="stats-section">
+    <div class="container">
+      <div class="step-header">
+        <h2 style="color: white;">Community Stats</h2>
+        <p style="color: rgba(255,255,255,0.8);">Join thousands of others preserving their digital legacy</p>
+      </div>
+      
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span id="total-capsules" class="stat-number">0</span>
+          <span class="stat-label">Total Capsules</span>
+        </div>
+        
+        <div class="stat-item">
+          <span id="revealed-capsules" class="stat-number">0</span>
+          <span class="stat-label">Revealed</span>
+        </div>
+        
+        <div class="stat-item">
+          <span id="locked-capsules" class="stat-number">0</span>
+          <span class="stat-label">Still Locked</span>
+        </div>
+        
+        <div class="stat-item">
+          <span class="stat-number">∞</span>
+          <span class="stat-label">Years Preserved</span>
+        </div>
+      </div>
     </div>
-  </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2025 Ethereum Time Capsule. Built with ❤️ for the future.</p>
+      <p>Powered by <a href="https://ethereum.org" style="color: #4CAF50;">Ethereum</a> and <a href="https://shutter.network" style="color: #4CAF50;">Shutter Network</a></p>
+    </div>
+  </footer>
 
   <!-- Scripts -->
   <script type="module">
-    // Load sample capsules for the carousel
-    async function loadSampleCapsules() {
+    // Load stats from the database API
+    async function loadStats() {
       try {
-        const response = await fetch('http://localhost:5000/api/capsules?limit=4');
+        const response = await fetch('http://localhost:5000/api/stats');
         const data = await response.json();
         
-        if (data.success && data.capsules.length > 0) {
-          const carousel = document.getElementById('thumbCarousel');
-          carousel.innerHTML = ''; // Clear loading thumbnails
-          
-          data.capsules.slice(0, 4).forEach(capsule => {
-            const thumbnail = createThumbnail(capsule);
-            carousel.appendChild(thumbnail);
-          });
+        if (data.success) {
+          document.getElementById('total-capsules').textContent = data.stats.total_capsules;
+          document.getElementById('revealed-capsules').textContent = data.stats.revealed_capsules;
+          document.getElementById('locked-capsules').textContent = data.stats.locked_capsules;
         }
       } catch (error) {
-        console.error('Failed to load sample capsules:', error);
-        // Keep the loading thumbnails as fallback
+        console.error('Failed to load stats:', error);
       }
     }
-
-    function createThumbnail(capsule) {
-      const thumbnail = document.createElement('div');
-      thumbnail.className = 'intro-thumbnail';
-      
-      const creator = `${capsule.creator.slice(0, 6)}...${capsule.creator.slice(-4)}`;
-      const isRevealed = capsule.isRevealed;
-      const imageSrc = isRevealed 
-        ? `http://localhost:5000/ipfs/${capsule.imageCID}` 
-        : `http://localhost:5000/pixelated/${capsule.imageCID}`;
-      
-      // Truncate title if too long
-      let title = capsule.title;
-      if (title.length > 20) {
-        const words = title.split(' ');
-        if (words.length > 2) {
-          title = words.slice(0, 2).join(' ') + '...';
-        } else {
-          title = title.substring(0, 20) + '...';
-        }
-      }
-      
-      thumbnail.innerHTML = `
-        <div class="rectangle-143"></div>
-        <div class="content">
-          <div class="issued-by-xyz">issued by ${creator}</div>
-          <div class="title-on-two-lines">${title}</div>
-          <div class="onchain-values-container">
-            <div class="onchain-values">#${capsule.tags.split(',')[0].trim()}</div>
-          </div>
-        </div>
-        <img class="image-cropped" src="${imageSrc}" alt="Capsule image" loading="lazy" 
-             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-        <div class="image-placeholder" style="display: none;">🔒</div>
-      `;
-      
-      // Add click handler to view capsule
-      thumbnail.addEventListener('click', () => {
-        window.location.href = `gallery.html#capsule-${capsule.id}`;
-      });
-      
-      return thumbnail;
-    }    function toggleMenu() {
-      // Remove existing menu if present
-      const existingMenu = document.querySelector('.menu-dropdown');
-      if (existingMenu) {
-        existingMenu.classList.remove('show');
-        setTimeout(() => {
-          existingMenu.remove();
-        }, 300);
-        return;
-      }
-
-      // Create new full-screen menu
-      const menu = document.createElement('div');
-      menu.className = 'menu-dropdown';
-      
-      const links = [
-        { text: 'gallery', href: 'gallery.html' },
-        { text: 'documentation', href: '#documentation' },
-        { text: 'impressum', href: '#impressum' },
-        { text: 'faq', href: '#faq' }
-      ];
-      
-      links.forEach((link, index) => {
-        const a = document.createElement('a');
-        a.href = link.href;
-        a.textContent = link.text;
-        menu.appendChild(a);
-      });
-
-      // Add back button
-      const backButton = document.createElement('div');
-      backButton.className = 'menu-back';
-      backButton.innerHTML = '&lt;';
-      backButton.addEventListener('click', toggleMenu);
-      menu.appendChild(backButton);
-      
-      // Append to body for full-screen overlay
-      document.body.appendChild(menu);
-      
-      // Trigger animation
-      setTimeout(() => {
-        menu.classList.add('show');
-      }, 10);
-      
-      // Remove menu when clicking outside or on links
-      menu.addEventListener('click', (e) => {
-        if (e.target === menu || e.target.tagName === 'A') {
-          if (e.target.tagName === 'A' && e.target.href.startsWith('#')) {
-            e.preventDefault(); // Prevent navigation for placeholder links
-          }
-          toggleMenu();
-        }
-      });
-    }// Add event listener for menu button
-    document.getElementById('menuButton').addEventListener('click', toggleMenu);
-
-    // Load sample capsules when page loads
-    document.addEventListener('DOMContentLoaded', loadSampleCapsules);
+    
+    // Load stats when page loads
+    document.addEventListener('DOMContentLoaded', loadStats);
   </script>
 </body>
 </html>

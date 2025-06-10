@@ -69,7 +69,9 @@
       margin: 0 auto;
       overflow: hidden;
       position: relative;
-    }    /* Header */
+    }
+
+    /* Header */
     .header {
       background: var(--eth2);
       padding: 12px 20px 12px 20px;
@@ -79,7 +81,6 @@
       width: 100%;
       height: 68px;
       min-width: 272px;
-      position: relative;
     }
 
     .logo {
@@ -95,82 +96,18 @@
 
     .logo-icon {
       font-size: 24px;
-    }    .menu {
+    }
+
+    .menu {
       width: 52px;
       height: 52px;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
       background: var(--d9d9d9);
       border-radius: 12px;
       cursor: pointer;
-      gap: 4px;
-      padding: 14px 12px;
-      transition: all 0.3s ease;
-    }
-
-    .menu:hover {
-      background: #c5c5c5;
-    }
-
-    .menu-line {
-      width: 28px;
-      height: 2px;
-      background-color: var(--eth3);
-      border-radius: 1px;
-      transition: all 0.3s ease;
-    }    /* Menu dropdown */
-    .menu-dropdown {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: var(--eth2);
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-family: var(--eth1-font-family);
       font-size: 24px;
-      font-weight: 400;
-      transform: translateY(-100%);
-      transition: transform 0.3s ease-in-out;
-    }
-
-    .menu-dropdown.show {
-      transform: translateY(0);
-    }
-
-    .menu-dropdown a {
-      display: block;
-      padding: 20px 0;
-      text-decoration: none;
-      color: var(--eth3);
-      text-align: center;
-      width: 100%;
-      transition: opacity 0.2s ease;
-    }
-
-    .menu-dropdown a:hover {
-      opacity: 0.7;
-    }
-
-    /* Add a back button */
-    .menu-back {
-      position: absolute;
-      bottom: 40px;
-      left: 40px;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 24px;
-      color: var(--eth3);
     }
 
     /* Body */
@@ -450,12 +387,9 @@
     <div class="header">
       <a href="index.html" class="logo">
         <span class="logo-icon">🕰️</span>
-        <span>Time Capsule</span>
-      </a>      <div class="menu" id="menuButton">
-        <div class="menu-line"></div>
-        <div class="menu-line"></div>
-        <div class="menu-line"></div>
-      </div>
+        <span>Ethereum Time Capsule</span>
+      </a>
+      <div class="menu" onclick="toggleMenu()">☰</div>
     </div>
 
     <!-- Body -->
@@ -583,61 +517,66 @@
       });
       
       return thumbnail;
-    }    function toggleMenu() {
-      // Remove existing menu if present
-      const existingMenu = document.querySelector('.menu-dropdown');
-      if (existingMenu) {
-        existingMenu.classList.remove('show');
-        setTimeout(() => {
-          existingMenu.remove();
-        }, 300);
-        return;
-      }
+    }
 
-      // Create new full-screen menu
-      const menu = document.createElement('div');
-      menu.className = 'menu-dropdown';
-      
+    function toggleMenu() {
+      // Simple menu toggle - could expand this later
       const links = [
-        { text: 'gallery', href: 'gallery.html' },
-        { text: 'documentation', href: '#documentation' },
-        { text: 'impressum', href: '#impressum' },
-        { text: 'faq', href: '#faq' }
+        { text: 'Home', href: 'index.html' },
+        { text: 'Create Capsule', href: 'create.html' },
+        { text: 'Gallery', href: 'gallery.html' }
       ];
       
-      links.forEach((link, index) => {
+      const existingMenu = document.querySelector('.mobile-menu');
+      if (existingMenu) {
+        existingMenu.remove();
+        return;
+      }
+      
+      const menu = document.createElement('div');
+      menu.className = 'mobile-menu';
+      menu.style.cssText = `
+        position: fixed;
+        top: 68px;
+        right: 20px;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        z-index: 1000;
+      `;
+      
+      links.forEach(link => {
         const a = document.createElement('a');
         a.href = link.href;
         a.textContent = link.text;
+        a.style.cssText = `
+          display: block;
+          padding: 8px 12px;
+          text-decoration: none;
+          color: #333;
+          border-radius: 4px;
+          white-space: nowrap;
+        `;
+        a.onmouseover = () => a.style.background = '#f5f5f5';
+        a.onmouseout = () => a.style.background = 'transparent';
         menu.appendChild(a);
       });
-
-      // Add back button
-      const backButton = document.createElement('div');
-      backButton.className = 'menu-back';
-      backButton.innerHTML = '&lt;';
-      backButton.addEventListener('click', toggleMenu);
-      menu.appendChild(backButton);
       
-      // Append to body for full-screen overlay
       document.body.appendChild(menu);
       
-      // Trigger animation
+      // Remove menu when clicking outside
       setTimeout(() => {
-        menu.classList.add('show');
-      }, 10);
-      
-      // Remove menu when clicking outside or on links
-      menu.addEventListener('click', (e) => {
-        if (e.target === menu || e.target.tagName === 'A') {
-          if (e.target.tagName === 'A' && e.target.href.startsWith('#')) {
-            e.preventDefault(); // Prevent navigation for placeholder links
+        const clickHandler = (e) => {
+          if (!menu.contains(e.target) && !e.target.closest('.menu')) {
+            menu.remove();
+            document.removeEventListener('click', clickHandler);
           }
-          toggleMenu();
-        }
-      });
-    }// Add event listener for menu button
-    document.getElementById('menuButton').addEventListener('click', toggleMenu);
+        };
+        document.addEventListener('click', clickHandler);
+      }, 10);
+    }
 
     // Load sample capsules when page loads
     document.addEventListener('DOMContentLoaded', loadSampleCapsules);
