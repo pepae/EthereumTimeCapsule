@@ -378,33 +378,252 @@
       display: flex;
       align-items: center;
       justify-content: center;
-    }
-
-    /* Footer */
-    .footer {
+    }    /* New section styles */
+    .section-container {
       background: var(--eth2);
-      padding: 18px;
+      border-radius: 16px;
+      padding: 24px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 16px;
       align-items: center;
       justify-content: center;
       width: 100%;
-      height: 58px;
+      max-width: 400px;
+      margin: 0 auto;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
 
-    .learn-more {
+    .section-container:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .section-visual {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }    .visual-placeholder {
+      width: 100%;
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    }
+
+    .visual-placeholder.large {
+      height: 120px;
+    }
+
+    .visual-placeholder.medium {
+      height: 100px;
+    }
+
+    .visual-item {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      border-radius: 12px;
+      background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
+    }
+
+    .visual-item.small {
+      width: 60%;
+      height: 60%;
+      top: 10%;
+      left: 10%;
+    }    .visual-item.large {
+      width: 80%;
+      height: 80%;
+      top: 10%;
+      left: 10%;
+    }
+
+    /* Visual grid styles for "How it works" section */
+    .visual-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 8px;
+      width: 80px;
+      height: 80px;
+    }
+
+    .grid-item {
+      background: linear-gradient(45deg, #ddd, #ccc);
+      border-radius: 8px;
+    }
+
+    .grid-item:first-child {
+      grid-column: 1 / -1;
+      height: 30px;
+    }
+
+    /* Circle styles for "Small fee" section */
+    .visual-placeholder.small-circles {
+      height: 80px;
+      position: relative;
+    }
+
+    .circle-top {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(45deg, #e0e0e0, #d0d0d0);
+      border-radius: 50%;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .circle-bottom-left {
+      width: 24px;
+      height: 24px;
+      background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
+      border-radius: 50%;
+      position: absolute;
+      bottom: 0;
+      left: 20%;
+    }
+
+    .circle-bottom-right {
+      width: 30px;
+      height: 30px;
+      background: linear-gradient(45deg, #e8e8e8, #d8d8d8);
+      border-radius: 50%;
+      position: absolute;
+      bottom: 0;
+      right: 20%;
+    }
+
+    /* Section list styles */
+    .section-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .section-list li {
       color: #000000;
       text-align: center;
-      font-family: var(--eth1-font-family);
-      font-size: var(--eth1-font-size);
-      font-weight: var(--eth1-font-weight);
-      cursor: pointer;
-      text-decoration: none;
+      font-family: var(--intro-copy-font-family);
+      font-size: var(--intro-copy-font-size);
+      font-weight: var(--intro-copy-font-weight);
+      line-height: 1.4;
+      position: relative;
+      padding-left: 20px;
     }
 
-    .learn-more:hover {
-      text-decoration: underline;
+    .section-list li::before {
+      content: "•";
+      color: var(--eth3);
+      font-size: 20px;
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+
+    /* Centered content for final CTA */
+    .section-content.centered {
+      text-align: center;
+    }
+
+    .section-content {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .section-heading {
+      color: #000000;
+      text-align: center;
+      font-family: var(--slogan-mobile-font-family);
+      font-size: var(--slogan-mobile-font-size);
+      line-height: var(--slogan-mobile-line-height);
+      font-weight: var(--slogan-mobile-font-weight);
+      width: 100%;
+    }
+
+    .section-text {
+      color: #000000;
+      text-align: center;
+      font-family: var(--intro-copy-font-family);
+      font-size: var(--intro-copy-font-size);
+      font-weight: var(--intro-copy-font-weight);
+      width: 100%;
+      max-width: 400px;
+      line-height: 1.4;
+    }
+
+    .button-secondary {
+      background: var(--d9d9d9);
+      border-radius: 46px;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+
+    .button-secondary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .fee-text {
+      font-weight: 500;
+    }
+
+    .final-cta {
+      background: var(--eth5);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    .button-primary-large {
+      background: var(--eth3);
+      border-radius: 46px;
+      padding: 12px 37px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      color: var(--eth1);
+      font-family: var(--small-button-font-family);
+      font-size: var(--small-button-font-size);
+      font-weight: var(--small-button-font-weight);
+    }
+
+    .button-primary-large:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
     }
 
     /* Loading state */
@@ -432,6 +651,26 @@
 
       .intro-copy {
         font-size: 18px;
+      }
+
+      .section-container {
+        padding: 16px;
+      }
+
+      .section-heading {
+        font-size: 28px;
+      }
+
+      .section-text {
+        font-size: 16px;
+      }
+
+      .button-secondary {
+        padding: 10px 20px;
+      }
+
+      .button-primary-large {
+        padding: 10px 20px;
       }
     }
 
@@ -511,6 +750,84 @@
       <a href="create.html" class="button-add-your-entry">
         <div class="add-your-entry">add your entry</div>
       </a>
+      
+      <!-- Open to all section -->
+      <div class="section-container">
+        <div class="section-visual">
+          <div class="visual-placeholder large">
+            <div class="visual-item"></div>
+            <div class="visual-item small"></div>
+          </div>
+        </div>
+        
+        <div class="section-content">
+          <div class="section-heading">Open to all</div>
+          <div class="section-text">
+            Every builder, user, artist, and dreamer is invited to leave their mark. Stories of triumph, failure, growth, and evolution. Drops, timeless memes, project skills, visions for Ethereum's future — even love letters to what makes blockchain unlock new future.
+          </div>
+          <a href="gallery.html" class="button-secondary">
+            <div class="button-text">see submissions</div>
+          </a>
+        </div>
+      </div>
+      
+      <!-- How it works section -->
+      <div class="section-container">
+        <div class="section-visual">
+          <div class="visual-placeholder medium">
+            <div class="visual-grid">
+              <div class="grid-item"></div>
+              <div class="grid-item"></div>
+              <div class="grid-item"></div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="section-content">
+          <div class="section-heading">How it works</div>
+          <ul class="section-list">
+            <li>Entries are submitted immediately</li>
+            <li>Sealed until July 30, 2025</li>
+            <li>Submissions are sealed with Shutter Ditto ⚡ encrypted encryption</li>
+          </ul>
+          <a href="#" class="button-secondary">
+            <div class="button-text">learn about shutter API</div>
+          </a>
+        </div>
+      </div>
+      
+      <!-- Small fee section -->
+      <div class="section-container">
+        <div class="section-visual">
+          <div class="visual-placeholder small-circles">
+            <div class="circle-top"></div>
+            <div class="circle-bottom-left"></div>
+            <div class="circle-bottom-right"></div>
+          </div>
+        </div>
+        
+        <div class="section-content">
+          <div class="section-heading">A small fee, a big impact</div>
+          <div class="section-text fee-text">
+            Each submission costs 0.001 ETH (~$2.62)
+          </div>
+          <div class="section-text">
+            All funds go to Protocol Guild, supporting the core developers who keep advancing and securing Ethereum.
+          </div>
+        </div>
+      </div>
+      
+      <!-- Final CTA section -->
+      <div class="section-container final-cta">
+        <div class="section-content centered">
+          <div class="section-heading">
+            Are you ready to be part of Ethereum's living history ?
+          </div>
+          <a href="create.html" class="button-primary-large">
+            <div class="button-text">Submit to the capsule</div>
+          </a>
+        </div>
+      </div>
     </div>
 
     <!-- Footer -->
