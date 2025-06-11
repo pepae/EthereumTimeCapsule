@@ -180,25 +180,28 @@ async function connectWallet(manual = false) {
 
 function updateWalletStatus(connected) {
   const walletStatus = document.getElementById('wallet-status');
-  const walletButton = document.getElementById('connect-wallet-btn');
   
   if (connected) {
     walletStatus.textContent = '✅ Wallet Connected';
     walletStatus.className = 'wallet-status connected';
-    walletButton.textContent = 'Connected';
-    walletButton.disabled = true;
   } else {
     walletStatus.textContent = '❌ Wallet Not Connected';
     walletStatus.className = 'wallet-status disconnected';
-    walletButton.textContent = 'Connect Wallet';
-    walletButton.disabled = false;
   }
 }
 
 // =============  EVENT LISTENERS  =============
 function setupEventListeners() {
-  // Wallet connection
-  document.getElementById('connect-wallet-btn').onclick = () => connectWallet(true);
+  // Wallet connection - click on wallet status to connect
+  const walletStatus = document.getElementById('wallet-status');
+  if (walletStatus) {
+    walletStatus.onclick = () => {
+      if (!walletConnected) {
+        connectWallet(true);
+      }
+    };
+    walletStatus.style.cursor = 'pointer';
+  }
   
   // Filter buttons
   document.getElementById('filter-all').onclick = () => setFilter('all');
@@ -225,12 +228,10 @@ function setFilter(filter) {
   
   // Update button states
   document.querySelectorAll('.filter-controls button').forEach(btn => {
-    btn.classList.remove('btn-primary');
-    btn.classList.add('btn-secondary');
+    btn.classList.remove('active');
   });
   
-  document.getElementById(`filter-${filter}`).classList.remove('btn-secondary');
-  document.getElementById(`filter-${filter}`).classList.add('btn-primary');
+  document.getElementById(`filter-${filter}`).classList.add('active');
   
   // Clear grid and reload
   document.getElementById('capsules-grid').innerHTML = '';
