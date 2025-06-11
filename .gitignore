@@ -4,3 +4,4 @@ capsules.db
 __pycache__
 test_pinata_public.cpython-311.pyc
 config.cpython-311.pyc
+config.py
