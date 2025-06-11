@@ -581,43 +581,132 @@ async function submitToChain() {
 
 // =============  STEP 4: COMPLETION  =============
 function populateCompletion() {
-  document.getElementById('final-title').textContent = capsuleData.title;
-  document.getElementById('final-capsule-id').textContent = capsuleData.capsuleId;
-  document.getElementById('final-tx-hash').textContent = capsuleData.txHash;
-  document.getElementById('final-reveal-time').textContent = 
-    new Date(capsuleData.encryptionData.revealTimestamp * 1000).toLocaleString();
+  // Update the preview card with final data
+  document.getElementById('final-preview-title').textContent = capsuleData.title;
+  document.getElementById('final-preview-issuer').textContent = capsuleData.userName;
   
-  // Show pixelated preview
-  document.getElementById('final-preview-image').src = capsuleData.encryptionData.pixelatedImage;
+  // Update unlock date
+  const unlockDate = new Date(capsuleData.encryptionData.revealTimestamp * 1000);
+  document.getElementById('final-unlock-date').textContent = 
+    unlockDate.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric'
+    });
   
-  // Setup share URL
-  const shareUrl = `${window.location.origin}${window.location.pathname}?capsule=${capsuleData.capsuleId}`;
-  document.getElementById('share-url').value = shareUrl;
+  // Update tags
+  const finalTagsContainer = document.getElementById('final-preview-tags');
+  finalTagsContainer.innerHTML = '';
+  const tags = capsuleData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+  tags.forEach(tag => {
+    const tagElement = document.createElement('span');
+    tagElement.className = 'tag';
+    tagElement.textContent = `#${tag}`;
+    finalTagsContainer.appendChild(tagElement);
+  });
+
+  // Recreate pixelated image in final preview
+  if (capsuleData.image) {
+    const canvas = document.getElementById('final-preview-canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = function() {
+      // Set canvas size to match the container
+      const containerWidth = 350;
+      const containerHeight = 200;
+      canvas.width = containerWidth;
+      canvas.height = containerHeight;
+      
+      // Clear canvas with light gray background
+      ctx.fillStyle = '#f0f0f0';
+      ctx.fillRect(0, 0, containerWidth, containerHeight);
+      
+      // Calculate aspect ratio preserving dimensions
+      const imgAspectRatio = img.width / img.height;
+      const containerAspectRatio = containerWidth / containerHeight;
+      
+      let drawWidth, drawHeight, offsetX, offsetY;
+      
+      if (imgAspectRatio > containerAspectRatio) {
+        drawWidth = containerWidth;
+        drawHeight = containerWidth / imgAspectRatio;
+        offsetX = 0;
+        offsetY = (containerHeight - drawHeight) / 2;
+      } else {
+        drawHeight = containerHeight;
+        drawWidth = containerHeight * imgAspectRatio;
+        offsetX = (containerWidth - drawWidth) / 2;
+        offsetY = 0;
+      }
+      
+      // Create pixelated effect
+      const pixelSize = 4;
+      const pixelWidth = Math.ceil(drawWidth / pixelSize);
+      const pixelHeight = Math.ceil(drawHeight / pixelSize);
+      
+      // Create temporary canvas for pixelation
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCanvas.width = pixelWidth;
+      tempCanvas.height = pixelHeight;
+      
+      // Disable image smoothing for crisp pixels
+      tempCtx.imageSmoothingEnabled = false;
+      tempCtx.drawImage(img, 0, 0, pixelWidth, pixelHeight);
+      
+      // Disable smoothing on main canvas
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(tempCanvas, offsetX, offsetY, drawWidth, drawHeight);
+    };
+    
+    // Load the uploaded image
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(capsuleData.image);
+  }
+
+  // Enable final ciphertext copy functionality
+  const finalCopyBtn = document.getElementById('final-copy-ciphertext-btn');
+  if (finalCopyBtn && capsuleData.encryptionData) {
+    finalCopyBtn.onclick = () => {
+      const ciphertext = capsuleData.encryptionData.encryptedStory;
+      navigator.clipboard.writeText(ciphertext).then(() => {
+        const originalText = finalCopyBtn.textContent;
+        finalCopyBtn.textContent = 'copied!';
+        finalCopyBtn.style.color = '#10B981';
+        setTimeout(() => {
+          finalCopyBtn.textContent = originalText;
+          finalCopyBtn.style.color = '#4F46E5';
+        }, 2000);
+      }).catch(err => {
+        console.error('Failed to copy ciphertext:', err);
+        alert('Failed to copy ciphertext to clipboard');
+      });
+    };
+  }
 }
 
-function shareOnTwitter() {
+function followOnX() {
+  window.open('https://twitter.com/ethereum', '_blank');
+}
+
+function shareOnX() {
   const text = `I just created a time capsule on Ethereum! 🕰️✨ It will unlock on ${new Date(capsuleData.encryptionData.revealTimestamp * 1000).toLocaleDateString()}`;
-  const url = document.getElementById('share-url').value;
-  const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+  const shareUrl = `${window.location.origin}${window.location.pathname}?capsule=${capsuleData.capsuleId}`;
+  const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
   window.open(twitterUrl, '_blank');
 }
 
-function copyShareUrl() {
-  const shareUrl = document.getElementById('share-url');
-  shareUrl.select();
-  shareUrl.setSelectionRange(0, 99999);
-  document.execCommand('copy');
-  
-  const copyBtn = document.getElementById('copy-url-btn');
-  const originalText = copyBtn.textContent;
-  copyBtn.textContent = 'Copied!';
-  setTimeout(() => {
-    copyBtn.textContent = originalText;
-  }, 2000);
+function viewInGallery() {
+  // Navigate to gallery view
+  window.location.href = 'gallery.html';
 }
 
-function createAnother() {
-  // Reset data
+function encryptAnotherEntry() {
+  // Reset data and start over
   capsuleData = {
     title: '',
     tags: '',
@@ -647,7 +736,7 @@ function createAnother() {
 }
 
 function viewAllCapsules() {
-  // Navigate to gallery view (we'll implement this later)
+  // Navigate to gallery view
   window.location.href = 'gallery.html';
 }
 
@@ -785,16 +874,16 @@ function setupEventListeners() {
   document.getElementById('step1-next-btn').onclick = proceedFromStep1;
   document.getElementById('step2-confirm-btn').onclick = confirmPreview;
   
-  // Final step buttons
-  const shareTwitterBtn = document.getElementById('share-twitter-btn');
-  const copyUrlBtn = document.getElementById('copy-url-btn');
-  const createAnotherBtn = document.getElementById('create-another-btn');
-  const viewAllBtn = document.getElementById('view-all-btn');
+  // Completion step buttons
+  const followXBtn = document.getElementById('follow-x-btn');
+  const shareXBtn = document.getElementById('share-x-btn');
+  const galleryBtn = document.getElementById('gallery-btn');
+  const encryptAnotherBtn = document.getElementById('encrypt-another-btn');
   
-  if (shareTwitterBtn) shareTwitterBtn.onclick = shareOnTwitter;
-  if (copyUrlBtn) copyUrlBtn.onclick = copyShareUrl;
-  if (createAnotherBtn) createAnotherBtn.onclick = createAnother;
-  if (viewAllBtn) viewAllBtn.onclick = viewAllCapsules;
+  if (followXBtn) followXBtn.onclick = followOnX;
+  if (shareXBtn) shareXBtn.onclick = shareOnX;
+  if (galleryBtn) galleryBtn.onclick = viewInGallery;
+  if (encryptAnotherBtn) encryptAnotherBtn.onclick = encryptAnotherEntry;
   
   // Wallet connection
   document.getElementById('connect-wallet-btn').onclick = () => connectWallet(true);
