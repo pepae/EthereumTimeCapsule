@@ -29,17 +29,22 @@ let currentStep = 1;
 
 // =============  NAVIGATION  =============
 function showStep(step) {
-  // Hide all steps
-  document.querySelectorAll('.step').forEach(el => el.style.display = 'none');
+  // Hide all step containers
+  document.querySelectorAll('.step-container').forEach(el => {
+    el.classList.remove('active');
+  });
   
   // Show current step
   const stepElement = document.getElementById(`step-${step}`);
   if (stepElement) {
-    stepElement.style.display = 'block';
+    stepElement.classList.add('active');
     currentStep = step;
     
     // Update progress indicator
     updateProgressIndicator(step);
+    
+    // Update step title for steps 2-5
+    updateStepTitle(step);
   }
 }
 
@@ -56,6 +61,26 @@ function updateProgressIndicator(step) {
       el.classList.remove('active', 'completed');
     }
   });
+}
+
+function updateStepTitle(step) {
+  // Update the main progress section title for steps 2-5
+  const progressSection = document.querySelector('.progress-section .step-title');
+  if (progressSection && step > 1) {
+    const stepTexts = {
+      2: { number: 'Step 2', description: 'Preview Your Entry' },
+      3: { number: 'Step 3', description: 'Encrypt Your Entry' },
+      4: { number: 'Step 4', description: 'Submit to Blockchain' },
+      5: { number: 'Step 5', description: 'Complete!' }
+    };
+    
+    if (stepTexts[step]) {
+      const numberText = progressSection.querySelector('.step-number-text');
+      const descText = progressSection.querySelector('.step-description');
+      if (numberText) numberText.textContent = stepTexts[step].number;
+      if (descText) descText.textContent = stepTexts[step].description;
+    }
+  }
 }
 
 function nextStep() {
@@ -257,10 +282,13 @@ async function startEncryption() {
       cid: uploadResult.cid,
       preview_id: encResponse.data.pixelatedId
     });
-    
-    document.getElementById('encryption-status').textContent = 'Encryption complete!';
+      document.getElementById('encryption-status').textContent = 'Encryption complete!';
     document.getElementById('encryption-progress').style.width = '100%';
-      // Enable submit button
+    
+    // Show chain submission section
+    document.getElementById('chain-section').style.display = 'block';
+    
+    // Enable submit button
     document.getElementById('submit-to-chain-btn').disabled = false;
     document.getElementById('chain-status').textContent = 'Ready to submit to blockchain!';
     
