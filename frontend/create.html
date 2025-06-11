@@ -918,7 +918,8 @@
         
         <div class="preview-content">
           <h2 id="preview-title" class="preview-title">My amazing entry to the Ethereum time capsule</h2>
-            <div class="preview-meta">
+          
+          <div class="preview-meta">
             <div class="meta-item">
               <div class="meta-icon">🔒</div>
               <div class="meta-text">
@@ -935,20 +936,20 @@
             </div>
           </div>
           
-          <!-- Encryption Status Section -->
-          <div class="encryption-status-section" id="encryption-status-section" style="margin-top: 16px; padding: 12px; background: #f8f9fa; border-radius: 8px; display: none;">
-            <div class="encryption-progress">
-              <div class="progress-bar">
-                <div id="preview-encryption-progress" class="progress-fill" style="width: 0%;"></div>
-              </div>
-              <div id="preview-encryption-status" class="status-text">Starting encryption...</div>
-            </div>
-          </div>
-          
           <div class="preview-tags">
             <span class="tag">#lol</span>
             <span class="tag">#OnChainValues</span>
           </div>
+        </div>
+      </div>
+      
+      <!-- Encryption Status Section - moved outside preview card -->
+      <div class="encryption-status-section" id="encryption-status-section" style="margin: 20px; padding: 16px; background: #f8f9fa; border-radius: 12px; display: none;">
+        <div class="encryption-progress">
+          <div class="progress-bar">
+            <div id="preview-encryption-progress" class="progress-fill" style="width: 0%;"></div>
+          </div>
+          <div id="preview-encryption-status" class="status-text">Starting encryption...</div>
         </div>
       </div>
       
