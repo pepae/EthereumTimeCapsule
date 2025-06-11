@@ -147,25 +147,18 @@ async function connectWallet(manual = false) {
 
 function updateWalletStatus(connected) {
   const walletStatus = document.getElementById('wallet-status');
-  const walletButton = document.getElementById('connect-wallet-btn');
   
   if (connected) {
     if (walletStatus) {
       walletStatus.textContent = '✅ Wallet Connected';
       walletStatus.className = 'wallet-status connected';
-    }
-    if (walletButton) {
-      walletButton.textContent = 'Connected';
-      walletButton.disabled = true;
+      walletStatus.style.cursor = 'default';
     }
   } else {
     if (walletStatus) {
-      walletStatus.textContent = '❌ Wallet Not Connected';
+      walletStatus.textContent = '❌ Click to Connect';
       walletStatus.className = 'wallet-status disconnected';
-    }
-    if (walletButton) {
-      walletButton.textContent = 'Connect';
-      walletButton.disabled = false;
+      walletStatus.style.cursor = 'pointer';
     }
   }
 }
@@ -885,8 +878,16 @@ function setupEventListeners() {
   if (galleryBtn) galleryBtn.onclick = viewInGallery;
   if (encryptAnotherBtn) encryptAnotherBtn.onclick = encryptAnotherEntry;
   
-  // Wallet connection
-  document.getElementById('connect-wallet-btn').onclick = () => connectWallet(true);
+  // Wallet status click to connect
+  const walletStatus = document.getElementById('wallet-status');
+  if (walletStatus) {
+    walletStatus.onclick = async () => {
+      if (!walletConnected) {
+        await connectWallet(true);
+      }
+    };
+    walletStatus.style.cursor = 'pointer';
+  }
   
   // Progress step navigation
   document.querySelectorAll('.progress-step').forEach((step, index) => {

@@ -3,11 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ethereum Time Capsule - Create Your Digital Legacy</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <title>Ethereum Time Capsule - Create Your Digital Legacy</title>  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"><style>
+    /* Figma-inspired design variables - consistent with index.html */
+    :root {
+      /* Colors */
+      --eth1: #ffffff;
+      --eth2: #ececec;
+      --eth3: #232323;
+      --eth4: #c0c0c0;
+      --eth5: #242ae0;
+      --d9d9d9: #d9d9d9;
+      
+      /* Fonts */
+      --eth1-font-family: 'Inter', sans-serif;
+      --eth1-font-size: 12px;
+      --eth1-font-weight: 500;
+      --button-font-family: 'Inter', sans-serif;
+      --button-font-size: 20px;
+      --button-font-weight: 600;
+      --intro-copy-font-family: 'Inter', sans-serif;
+      --intro-copy-font-size: 20px;
+      --intro-copy-font-weight: 400;
+      --slogan-mobile-font-family: 'Space Grotesk', sans-serif;
+      --slogan-mobile-font-size: 40px;
+      --slogan-mobile-line-height: 48px;
+      --slogan-mobile-font-weight: 700;
+      --tinx-font-family: 'Inter', sans-serif;
+      --tinx-font-size: 10px;
+      --tinx-font-weight: 400;
+      --tinx-light-font-family: 'Inter', sans-serif;
+      --tinx-light-font-size: 11px;
+      --tinx-light-font-weight: 300;
+      --small-button-font-family: 'Inter', sans-serif;
+      --small-button-font-size: 16px;
+      --small-button-font-weight: 600;
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -15,53 +48,142 @@
     }
 
     body {
-      font-family: 'Inter', sans-serif;
-      background: #ffffff;
-      color: #333;
+      font-family: var(--eth1-font-family);
+      background: var(--eth1);
+      color: var(--eth3);
       line-height: 1.4;
     }
 
-    /* Mobile Container */
+    /* Mobile Container - consistent with index.html */
     .mobile-container {
-      max-width: 390px;
-      margin: 0 auto;
-      background: #ffffff;
-      min-height: 100vh;
-      border: 1px solid #e0e0e0;
+      background: var(--eth1);
       border-radius: 24px;
+      border: 1px solid #000000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      max-width: 400px;
+      margin: 0 auto;
       overflow: hidden;
+      position: relative;
     }
 
-    /* Header */
+    /* Header - consistent with index.html */
     .header {
-      background: #ececec;
-      padding: 16px 20px;
+      background: var(--eth2);
+      padding: 12px 20px 12px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      width: 100%;
+      height: 68px;
+      min-width: 272px;
+      position: relative;
     }
 
     .logo {
+      font-family: var(--small-button-font-family);
+      font-size: 18px;
+      font-weight: var(--small-button-font-weight);
+      color: var(--eth3);
+      text-decoration: none;
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
-    .logo-circle {
-      width: 32px;
-      height: 32px;
-      background: #000000;
-      border-radius: 50%;
+    .logo-icon {
+      font-size: 24px;
     }
 
-    .wallet-section {
+    .menu {
+      width: 52px;
+      height: 52px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--d9d9d9);
+      border-radius: 12px;
+      cursor: pointer;
+      gap: 4px;
+      padding: 14px 12px;
+      transition: all 0.3s ease;
+    }
+
+    .menu:hover {
+      background: #c5c5c5;
+    }
+
+    .menu-line {
+      width: 28px;
+      height: 2px;
+      background-color: var(--eth3);
+      border-radius: 1px;
+      transition: all 0.3s ease;
+    }
+
+    /* Menu dropdown - consistent with index.html */
+    .menu-dropdown {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: var(--eth2);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--eth1-font-family);
+      font-size: 24px;
+      font-weight: 400;
+      transform: translateY(-100%);
+      transition: transform 0.3s ease-in-out;
+    }
+
+    .menu-dropdown.show {
+      transform: translateY(0);
+    }
+
+    .menu-dropdown a {
+      display: block;
+      padding: 20px 0;
+      text-decoration: none;
+      color: var(--eth3);
+      text-align: center;
+      width: 100%;
+      transition: opacity 0.2s ease;
+    }
+
+    .menu-dropdown a:hover {
+      opacity: 0.7;
+    }
+
+    /* Add a back button */
+    .menu-back {
+      position: absolute;
+      bottom: 40px;
+      left: 40px;
+      width: 40px;
+      height: 40px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 24px;
+      color: var(--eth3);
     }
 
+    /* Wallet status indicator */
     .wallet-status {
-      font-size: 12px;
+      position: absolute;
+      top: 10px;
+      right: 80px;
+      font-size: 10px;
       font-weight: 500;
       color: #666;
     }
@@ -72,17 +194,6 @@
 
     .wallet-status.disconnected {
       color: #dc3545;
-    }
-
-    .menu-button {
-      background: #d9d9d9;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-family: 'Inter', sans-serif;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
     }
 
     /* Progress Section */
@@ -650,33 +761,84 @@
       width: 100%;
       text-decoration: underline;
       transition: color 0.3s ease;
-    }
-
-    .encrypt-another-button:hover {
+    }    .encrypt-another-button:hover {
       color: #4F46E5;
     }
 
-    /* Responsive adjustments */
-    @media (max-width: 390px) {
+    /* Footer - consistent with index.html */
+    .footer {
+      background: var(--eth2);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 58px;
+    }
+
+    .learn-more {
+      color: #000000;
+      text-align: center;
+      font-family: var(--eth1-font-family);
+      font-size: var(--eth1-font-size);
+      font-weight: var(--eth1-font-weight);
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .learn-more:hover {
+      text-decoration: underline;
+    }/* Responsive adjustments - consistent with index.html */
+    @media (max-width: 420px) {
       .mobile-container {
         max-width: 100%;
         border-radius: 0;
-        border-left: none;
-        border-right: none;
+        border: none;
+        min-height: 100vh;
+      }
+      
+      .progress-section {
+        padding: 20px 16px;
+      }
+      
+      .form-group {
+        margin-bottom: 16px;
+      }
+      
+      .form-group label {
+        font-size: 14px;
+      }
+      
+      .upload-area {
+        height: 120px;
+      }
+    }
+
+    @media (min-width: 768px) {
+      .mobile-container {
+        max-width: 500px;
+        margin: 20px auto;
+        min-height: calc(100vh - 40px);
       }
     }
   </style>
 </head>
 <body>
-  <div class="mobile-container">
-    <!-- Header -->
+  <div class="mobile-container">    <!-- Header -->
     <div class="header">
-      <div class="logo">
-        <div class="logo-circle"></div>
-      </div>
-      <div class="wallet-section">
-        <div id="wallet-status" class="wallet-status">❌ Wallet Not Connected</div>
-        <button id="connect-wallet-btn" class="menu-button">Connect</button>
+      <a href="index.html" class="logo">
+        <span class="logo-icon">🕰️</span>
+        <span>Time Capsule</span>
+      </a>
+      
+      <div id="wallet-status" class="wallet-status">❌ Wallet Not Connected</div>
+      
+      <div class="menu" id="menuButton">
+        <div class="menu-line"></div>
+        <div class="menu-line"></div>
+        <div class="menu-line"></div>
       </div>
     </div>
     
@@ -874,11 +1036,15 @@
         <button id="follow-x-btn" class="follow-button">Follow us on X</button>
         <button id="share-x-btn" class="share-button">Share on X</button>
         <button id="gallery-btn" class="gallery-button">See your entry in the gallery</button>
-        <button id="encrypt-another-btn" class="encrypt-another-button">encrypt another entry</button>
-      </div>
+        <button id="encrypt-another-btn" class="encrypt-another-button">encrypt another entry</button>      </div>
     </div>
 
-  </div>  <!-- Scripts -->
+    <!-- Footer - consistent with index.html -->
+    <div class="footer">
+      <a href="gallery.html" class="learn-more">learn more</a>
+    </div>
+
+  </div><!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/buffer@6.0.3/index.js"></script>
@@ -886,10 +1052,71 @@
   <script src="https://cdn.jsdelivr.net/npm/@shutter-network/blst@0.1.7/dist/blst.min.js"></script>
   <script src="blst.js"></script>
   <script type="module" src="encryptDataBlst.js"></script>
-  <script type="module" src="main.js"></script>
-  <script src="app.js"></script><script>
+  <script type="module" src="main.js"></script>  <script src="app.js"></script>
+  
+  <script>
+    // Menu toggle functionality - consistent with index.html
+    function toggleMenu() {
+      // Remove existing menu if present
+      const existingMenu = document.querySelector('.menu-dropdown');
+      if (existingMenu) {
+        existingMenu.classList.remove('show');
+        setTimeout(() => {
+          existingMenu.remove();
+        }, 300);
+        return;
+      }
+
+      // Create new full-screen menu
+      const menu = document.createElement('div');
+      menu.className = 'menu-dropdown';
+      
+      const links = [
+        { text: 'gallery', href: 'gallery.html' },
+        { text: 'home', href: 'index.html' },
+        { text: 'documentation', href: '#documentation' },
+        { text: 'impressum', href: '#impressum' },
+        { text: 'faq', href: '#faq' }
+      ];
+      
+      links.forEach((link, index) => {
+        const a = document.createElement('a');
+        a.href = link.href;
+        a.textContent = link.text;
+        menu.appendChild(a);
+      });
+
+      // Add back button
+      const backButton = document.createElement('div');
+      backButton.className = 'menu-back';
+      backButton.innerHTML = '&lt;';
+      backButton.addEventListener('click', toggleMenu);
+      menu.appendChild(backButton);
+      
+      // Append to body for full-screen overlay
+      document.body.appendChild(menu);
+      
+      // Trigger animation
+      setTimeout(() => {
+        menu.classList.add('show');
+      }, 10);
+      
+      // Remove menu when clicking outside or on links
+      menu.addEventListener('click', (e) => {
+        if (e.target === menu || e.target.tagName === 'A') {
+          if (e.target.tagName === 'A' && e.target.href.startsWith('#')) {
+            e.preventDefault(); // Prevent navigation for placeholder links
+          }
+          toggleMenu();
+        }
+      });
+    }
+
     // Handle file upload change event
     document.addEventListener('DOMContentLoaded', function() {
+      // Add event listener for menu button
+      document.getElementById('menuButton').addEventListener('click', toggleMenu);
+      
       const fileInput = document.querySelector('#entry-image');
       const uploadArea = document.querySelector('.upload-area');
       
