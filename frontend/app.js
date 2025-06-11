@@ -19,6 +19,7 @@ let capsuleData = {
   tags: '',
   story: '',
   image: null,
+  userName: '',
   encryptionData: null,
   txHash: null,
   capsuleId: null
@@ -169,21 +170,23 @@ function updateWalletStatus(connected) {
 
 // =============  STEP 1: FILL ENTRY  =============
 function validateStep1() {
-  const title = document.getElementById('entry-title').value.trim();
-  const tags = document.getElementById('entry-tags').value.trim();
+  const userName = document.getElementById('entry-title').value.trim(); // Your name
+  const entryTitle = document.getElementById('entry-tags').value.trim(); // Title of your entry  
   const story = document.getElementById('entry-story').value.trim();
+  const tags = document.getElementById('entry-actual-tags').value.trim(); // Actual tags
   const image = document.getElementById('entry-image').files[0];
   
-  if (!title || !tags || !story || !image) {
-    alert('Please fill in all fields and select an image');
+  if (!userName || !entryTitle || !story || !image) {
+    alert('Please fill in all required fields and select an image');
     return false;
   }
   
-  // Save data
-  capsuleData.title = title;
-  capsuleData.tags = tags;
+  // Save data (note: we're using entry-tags for the actual title, and entry-title for the user name)
+  capsuleData.title = entryTitle;     // Title of the entry
+  capsuleData.tags = tags || entryTitle;  // Use actual tags if provided, otherwise use title
   capsuleData.story = story;
   capsuleData.image = image;
+  capsuleData.userName = userName;    // Store the user name separately
   
   return true;
 }
@@ -197,24 +200,103 @@ function proceedFromStep1() {
 
 // =============  STEP 2: PREVIEW  =============
 function populatePreview() {
+  // Update the title (this is the actual entry title)
   document.getElementById('preview-title').textContent = capsuleData.title;
-  document.getElementById('preview-tags').textContent = capsuleData.tags;
-  document.getElementById('preview-story').textContent = capsuleData.story;
   
-  // Show image preview
+  // Update the issuer (this is the user's name)
+  document.getElementById('preview-issuer').textContent = capsuleData.userName;
+  
+  // Update unlock date (1 year from now)
+  const unlockDate = new Date();
+  unlockDate.setFullYear(unlockDate.getFullYear() + 1);
+  document.getElementById('preview-unlock-date').textContent = 
+    unlockDate.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric'
+    });
+  
+  // Update tags
+  const tagsContainer = document.querySelector('.preview-tags');
+  tagsContainer.innerHTML = '';
+  const tags = capsuleData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+  tags.forEach(tag => {
+    const tagElement = document.createElement('span');
+    tagElement.className = 'tag';
+    tagElement.textContent = `#${tag}`;
+    tagsContainer.appendChild(tagElement);
+  });
+  // Create pixelated image preview with proper aspect ratio
   if (capsuleData.image) {
+    const canvas = document.getElementById('preview-canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = function() {
+      // Set canvas size to match the container
+      const containerWidth = 350;
+      const containerHeight = 200;
+      canvas.width = containerWidth;
+      canvas.height = containerHeight;
+      
+      // Clear canvas with light gray background
+      ctx.fillStyle = '#f0f0f0';
+      ctx.fillRect(0, 0, containerWidth, containerHeight);
+      
+      // Calculate aspect ratio preserving dimensions
+      const imgAspectRatio = img.width / img.height;
+      const containerAspectRatio = containerWidth / containerHeight;
+      
+      let drawWidth, drawHeight, offsetX, offsetY;
+      
+      // Always fit the image within the container, never stretch
+      if (imgAspectRatio > containerAspectRatio) {
+        // Image is wider - fit to width
+        drawWidth = containerWidth;
+        drawHeight = containerWidth / imgAspectRatio;
+        offsetX = 0;
+        offsetY = (containerHeight - drawHeight) / 2;
+      } else {
+        // Image is taller - fit to height
+        drawHeight = containerHeight;
+        drawWidth = containerHeight * imgAspectRatio;
+        offsetX = (containerWidth - drawWidth) / 2;
+        offsetY = 0;
+      }
+      
+      // Create pixelated effect
+      const pixelSize = 4; // Smaller pixel size for better dithered effect
+      
+      // Calculate dimensions for pixelation
+      const pixelWidth = Math.ceil(drawWidth / pixelSize);
+      const pixelHeight = Math.ceil(drawHeight / pixelSize);
+      
+      // Create temporary canvas for pixelation
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCanvas.width = pixelWidth;
+      tempCanvas.height = pixelHeight;
+      
+      // Disable image smoothing for crisp pixels
+      tempCtx.imageSmoothingEnabled = false;
+      
+      // Draw image scaled down to create pixelation
+      tempCtx.drawImage(img, 0, 0, pixelWidth, pixelHeight);
+      
+      // Disable smoothing on main canvas
+      ctx.imageSmoothingEnabled = false;
+      
+      // Draw the pixelated image back scaled up, centered with proper aspect ratio
+      ctx.drawImage(tempCanvas, offsetX, offsetY, drawWidth, drawHeight);
+    };
+    
+    // Load the uploaded image
     const reader = new FileReader();
     reader.onload = function(e) {
-      const previewImage = document.getElementById('preview-image');
-      previewImage.src = e.target.result;
-      previewImage.style.display = 'block';
+      img.src = e.target.result;
     };
     reader.readAsDataURL(capsuleData.image);
   }
-}
-
-function editEntry() {
-  prevStep(); // Go back to step 1
 }
 
 function confirmPreview() {
@@ -449,6 +531,7 @@ function createAnother() {
     tags: '',
     story: '',
     image: null,
+    userName: '',
     encryptionData: null,
     txHash: null,
     capsuleId: null
@@ -568,7 +651,6 @@ window.addEventListener("DOMContentLoaded", async () => {
 function setupEventListeners() {
   // Navigation buttons
   document.getElementById('step1-next-btn').onclick = proceedFromStep1;
-  document.getElementById('step2-back-btn').onclick = editEntry;
   document.getElementById('step2-confirm-btn').onclick = confirmPreview;
   document.getElementById('step3-back-btn').onclick = prevStep;
   document.getElementById('encrypt-btn').onclick = startEncryption;
