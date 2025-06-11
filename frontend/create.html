@@ -574,15 +574,13 @@
           <div class="form-group">
             <label class="form-label">Your Message</label>
             <textarea id="entry-story" class="form-textarea" placeholder="This is an example of message the user can log into the product" required></textarea>
-          </div>
-          
-          <div class="form-group">
+          </div>          <div class="form-group">
             <label class="form-label">Upload an image</label>
             <div class="upload-area" onclick="document.getElementById('entry-image').click()">
               <div class="upload-text">Upload an image</div>
               <div class="upload-subtext">max 2Mb, png, 16:9</div>
-              <input type="file" id="entry-image" class="upload-input" accept="image/*" required>
             </div>
+            <input type="file" id="entry-image" class="upload-input" accept="image/*" required>
           </div>
           
           <div class="form-group">
@@ -610,12 +608,11 @@
           <div class="step-number-text">Step 2</div>
           <div class="step-description">Preview Your Entry</div>
         </div>
-        
-        <div class="preview-container">
+          <div class="preview-container">
           <h3 id="preview-title"></h3>
           <p><strong>Tags:</strong> <span id="preview-tags"></span></p>
           <div id="preview-story"></div>
-          <img id="preview-image" style="display: none;" />
+          <img id="preview-image" style="display: block; max-width: 100%; height: auto; border-radius: 8px; margin-top: 12px;" />
         </div>
       </div>
       
@@ -656,8 +653,7 @@
         <button type="button" id="step3-back-btn" class="secondary-button">Back to Preview</button>
       </div>
     </div>
-    
-    <!-- Step 4: Submission Progress -->
+      <!-- Step 4: Submission Progress -->
     <div id="step-4" class="step-container">
       <div class="form-section">
         <div class="step-title" style="margin-bottom: 20px;">
@@ -668,9 +664,12 @@
         <div class="process-section">
           <h3>⛓️ Blockchain Submission</h3>
           <div class="progress-bar">
-            <div class="progress-fill" style="width: 50%;"></div>
+            <div id="submission-progress" class="progress-fill" style="width: 0%;"></div>
           </div>
-          <div class="status-text">Processing transaction...</div>
+          <div id="submission-status" class="status-text">Preparing transaction...</div>
+          <div class="submission-status">
+            <p id="submission-message">Please confirm the transaction in your wallet...</p>
+          </div>
         </div>
       </div>
     </div>
@@ -730,19 +729,13 @@
   <script src="blst.js"></script>
   <script src="encryptDataBlst.js"></script>
   <script type="module" src="main.js"></script>
-  <script type="module" src="app.js"></script>
-  
-  <script>
-    // Handle file upload area click
+  <script type="module" src="app.js"></script>  <script>
+    // Handle file upload change event
     document.addEventListener('DOMContentLoaded', function() {
-      const uploadArea = document.querySelector('.upload-area');
       const fileInput = document.querySelector('#entry-image');
+      const uploadArea = document.querySelector('.upload-area');
       
-      if (uploadArea && fileInput) {
-        uploadArea.addEventListener('click', function() {
-          fileInput.click();
-        });
-        
+      if (fileInput && uploadArea) {
         fileInput.addEventListener('change', function(e) {
           if (e.target.files && e.target.files[0]) {
             const fileName = e.target.files[0].name;

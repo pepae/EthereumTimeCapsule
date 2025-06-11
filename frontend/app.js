@@ -122,8 +122,13 @@ async function connectWallet(manual = false) {
     const net = await provider.getNetwork();
     if (net.chainId !== 100) throw new Error("Please switch to Gnosis Chain (100)");
     
+    // Initialize contract with signer for transactions
     contract = new ethers.Contract(contractAddr, contractAbi, signer);
     console.log("💰 Wallet contract initialized with address:", contractAddr);
+    
+    // Verify signer is working by getting address
+    const signerAddress = await signer.getAddress();
+    console.log("✅ Wallet connected, signer address:", signerAddress);
     
     walletConnected = true;
     updateWalletStatus(true);
@@ -142,15 +147,23 @@ function updateWalletStatus(connected) {
   const walletButton = document.getElementById('connect-wallet-btn');
   
   if (connected) {
-    walletStatus.textContent = '✅ Wallet Connected';
-    walletStatus.className = 'wallet-status connected';
-    walletButton.textContent = 'Connected';
-    walletButton.disabled = true;
+    if (walletStatus) {
+      walletStatus.textContent = '✅ Wallet Connected';
+      walletStatus.className = 'wallet-status connected';
+    }
+    if (walletButton) {
+      walletButton.textContent = 'Connected';
+      walletButton.disabled = true;
+    }
   } else {
-    walletStatus.textContent = '❌ Wallet Not Connected';
-    walletStatus.className = 'wallet-status disconnected';
-    walletButton.textContent = 'Connect Wallet';
-    walletButton.disabled = false;
+    if (walletStatus) {
+      walletStatus.textContent = '❌ Wallet Not Connected';
+      walletStatus.className = 'wallet-status disconnected';
+    }
+    if (walletButton) {
+      walletButton.textContent = 'Connect';
+      walletButton.disabled = false;
+    }
   }
 }
 
@@ -189,11 +202,15 @@ function populatePreview() {
   document.getElementById('preview-story').textContent = capsuleData.story;
   
   // Show image preview
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    document.getElementById('preview-image').src = e.target.result;
-  };
-  reader.readAsDataURL(capsuleData.image);
+  if (capsuleData.image) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const previewImage = document.getElementById('preview-image');
+      previewImage.src = e.target.result;
+      previewImage.style.display = 'block';
+    };
+    reader.readAsDataURL(capsuleData.image);
+  }
 }
 
 function editEntry() {
@@ -306,12 +323,34 @@ async function submitToChain() {
       return;
     }
     
+    // Ensure contract is properly initialized with signer
+    if (!contract || !signer) {
+      console.error('Contract or signer not initialized');
+      alert('Wallet connection issue. Please refresh and try again.');
+      return;
+    }
+    
     // Show step 4 (submission progress)
     nextStep(); // Move to step 4
-      // Update submission status
-    document.getElementById('chain-status').textContent = 'Preparing transaction...';
-    document.getElementById('chain-progress').style.width = '25%';
-    document.getElementById('submission-message').textContent = 'Please confirm the transaction in your wallet...';
+    
+    // Update submission status using the correct element IDs from step 4
+    const submissionStatus = document.getElementById('submission-status');
+    const submissionProgress = document.getElementById('submission-progress');
+    const submissionMessage = document.getElementById('submission-message');
+    
+    if (submissionStatus) submissionStatus.textContent = 'Preparing transaction...';
+    if (submissionProgress) submissionProgress.style.width = '25%';
+    if (submissionMessage) submissionMessage.textContent = 'Please confirm the transaction in your wallet...';
+    
+    // Verify we can get the signer address before proceeding
+    try {
+      const signerAddress = await signer.getAddress();
+      console.log('Signer address:', signerAddress);
+    } catch (addressError) {
+      console.error('Failed to get signer address:', addressError);
+      alert('Wallet connection issue. Please disconnect and reconnect your wallet.');
+      return;
+    }
     
     const tx = await contract.commitCapsule(
       capsuleData.title,
@@ -322,9 +361,9 @@ async function submitToChain() {
       capsuleData.encryptionData.imageCID
     );
     
-    document.getElementById('chain-status').textContent = 'Transaction submitted! Waiting for confirmation...';
-    document.getElementById('chain-progress').style.width = '50%';
-    document.getElementById('submission-message').textContent = 'Transaction submitted! Waiting for blockchain confirmation...';
+    if (submissionStatus) submissionStatus.textContent = 'Transaction submitted! Waiting for confirmation...';
+    if (submissionProgress) submissionProgress.style.width = '50%';
+    if (submissionMessage) submissionMessage.textContent = 'Transaction submitted! Waiting for blockchain confirmation...';
     
     console.log("Transaction hash:", tx.hash);
     capsuleData.txHash = tx.hash;
@@ -332,16 +371,17 @@ async function submitToChain() {
     const receipt = await tx.wait();
     console.log("Transaction confirmed:", receipt);
     
-    document.getElementById('chain-status').textContent = 'Getting capsule ID...';
-    document.getElementById('chain-progress').style.width = '75%';
-    document.getElementById('submission-message').textContent = 'Transaction confirmed! Finalizing your capsule...';
+    if (submissionStatus) submissionStatus.textContent = 'Getting capsule ID...';
+    if (submissionProgress) submissionProgress.style.width = '75%';
+    if (submissionMessage) submissionMessage.textContent = 'Transaction confirmed! Finalizing your capsule...';
     
     // Get capsule ID from transaction logs or contract call
     const capsuleCount = await contractRead.capsuleCount();
     capsuleData.capsuleId = capsuleCount.toNumber() - 1;
-      document.getElementById('chain-status').textContent = 'Success! Preparing completion screen...';
-    document.getElementById('chain-progress').style.width = '100%';
-    document.getElementById('submission-message').textContent = 'Success! Your time capsule has been created!';
+    
+    if (submissionStatus) submissionStatus.textContent = 'Success! Preparing completion screen...';
+    if (submissionProgress) submissionProgress.style.width = '100%';
+    if (submissionMessage) submissionMessage.textContent = 'Success! Your time capsule has been created!';
     
     // Move to final step with a short delay
     setTimeout(() => {
@@ -352,12 +392,11 @@ async function submitToChain() {
     
   } catch (error) {
     console.error('Blockchain submission failed:', error);
-    const chainStatus = document.getElementById('chain-status');
-    if (chainStatus) {
-      chainStatus.textContent = 'Submission failed: ' + error.message;
-      chainStatus.style.color = 'red';
-    }
-    // Show a retry button or go back to step 3
+    const submissionStatus = document.getElementById('submission-status');
+    if (submissionStatus) {
+      submissionStatus.textContent = 'Submission failed: ' + error.message;
+      submissionStatus.style.color = 'red';
+    }    // Show a retry button or go back to step 3
     setTimeout(() => {
       if (confirm('Transaction failed. Would you like to go back and try again?')) {
         prevStep(); // Go back to step 3
@@ -477,14 +516,36 @@ window.addEventListener("DOMContentLoaded", async () => {
       contractAbi,
       new ethers.providers.JsonRpcProvider(fixedCfg.rpc_url)
     );
-    
-    // Try to connect wallet automatically
+      // Try to connect wallet automatically
     try {
       await connectWallet();
     } catch (e) {
-      console.log("Auto-connect failed, user will need to connect manually");
+      console.log("Auto-connect failed, user will need to connect manually:", e);
     }
-      // Setup event listeners
+    
+    // Listen for wallet account changes
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', function (accounts) {
+        if (accounts.length === 0) {
+          console.log('Wallet disconnected');
+          walletConnected = false;
+          updateWalletStatus(false);
+          provider = null;
+          signer = null;
+          contract = null;
+        } else {
+          console.log('Wallet account changed, reconnecting...');
+          connectWallet();
+        }
+      });
+      
+      window.ethereum.on('chainChanged', function (chainId) {
+        console.log('Chain changed to:', chainId);
+        window.location.reload();
+      });
+    }
+    
+    // Setup event listeners
     setupEventListeners();
     
     // Initialize Shutter WASM
