@@ -194,11 +194,11 @@
 
     .wallet-status.disconnected {
       color: #dc3545;
-    }
-
-    /* Progress Section */
+    }    /* Progress Section */
     .progress-section {
-      padding: 24px 20px;
+      padding: 24px 0px;
+      width: 100%;
+      overflow: visible;
     }
 
     .progress-steps {
@@ -206,14 +206,18 @@
       justify-content: space-between;
       margin-bottom: 24px;
       position: relative;
+      padding: 0 15px;
+      width: calc(100% + 10px);
+      margin-left: -5px;
+      margin-right: -5px;
     }
 
     .progress-steps::before {
       content: '';
       position: absolute;
       top: 15px;
-      left: 30px;
-      right: 30px;
+      left: 45px;
+      right: 45px;
       height: 2px;
       background: #e0e0e0;
       z-index: 1;
@@ -225,6 +229,8 @@
       align-items: center;
       position: relative;
       z-index: 2;
+      flex: 1;
+      min-width: 0;
     }
 
     .step-circle {
@@ -252,10 +258,14 @@
     }
 
     .step-label {
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 400;
       color: #666;
       text-align: center;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: visible;
+      width: 100%;
     }
 
     .step-title {
@@ -790,7 +800,7 @@
 
     .learn-more:hover {
       text-decoration: underline;
-    }/* Responsive adjustments - consistent with index.html */
+    }    /* Responsive adjustments - consistent with index.html */
     @media (max-width: 420px) {
       .mobile-container {
         max-width: 100%;
@@ -801,6 +811,20 @@
       
       .progress-section {
         padding: 20px 16px;
+      }
+        .progress-steps {
+        padding: 0;
+        margin-left: -8px;
+        margin-right: -8px;
+      }
+      
+      .progress-steps::before {
+        left: 22px;
+        right: 22px;
+      }
+      
+      .step-label {
+        font-size: 10px;
       }
       
       .form-group {
@@ -858,7 +882,7 @@
         </div>
         <div class="step progress-step">
           <div class="step-circle">4</div>
-          <div class="step-label">Done!</div>
+          <div class="step-label">Complete</div>
         </div>
       </div>
       
