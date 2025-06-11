@@ -1,10 +1,6 @@
 /*  app.js — Main Application Router  */
 /*  Handles navigation between different steps of capsule creation  */
 
-import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.esm.min.js";
-import axios from "https://cdn.skypack.dev/axios";
-import { Buffer } from "https://esm.sh/buffer";
-
 // UMD bundle already loaded, grab default export:
 const WalletConnectProvider = window.WalletConnectProvider.default;
 
@@ -27,6 +23,8 @@ let capsuleData = {
 
 // Current step in the flow
 let currentStep = 1;
+let encryptionInProgress = false;
+let encryptionComplete = false;
 
 // =============  NAVIGATION  =============
 function showStep(step) {
@@ -44,8 +42,13 @@ function showStep(step) {
     // Update progress indicator
     updateProgressIndicator(step);
     
-    // Update step title for steps 2-5
+    // Update step title for steps 2-4
     updateStepTitle(step);
+    
+    // Handle step 3 special logic
+    if (step === 3) {
+      handleStep3();
+    }
   }
 }
 
@@ -65,14 +68,13 @@ function updateProgressIndicator(step) {
 }
 
 function updateStepTitle(step) {
-  // Update the main progress section title for steps 2-5
+  // Update the main progress section title for steps 2-4
   const progressSection = document.querySelector('.progress-section .step-title');
   if (progressSection && step > 1) {
     const stepTexts = {
       2: { number: 'Step 2', description: 'Preview Your Entry' },
-      3: { number: 'Step 3', description: 'Encrypt Your Entry' },
-      4: { number: 'Step 4', description: 'Submit to Blockchain' },
-      5: { number: 'Step 5', description: 'Complete!' }
+      3: { number: 'Step 3', description: 'Submit to Blockchain' },
+      4: { number: 'Step 4', description: 'Complete!' }
     };
     
     if (stepTexts[step]) {
@@ -85,7 +87,7 @@ function updateStepTitle(step) {
 }
 
 function nextStep() {
-  if (currentStep < 5) {
+  if (currentStep < 4) {
     showStep(currentStep + 1);
   }
 }
@@ -226,7 +228,8 @@ function populatePreview() {
     tagElement.textContent = `#${tag}`;
     tagsContainer.appendChild(tagElement);
   });
-  // Create pixelated image preview with proper aspect ratio
+
+  // Create pixelated image preview
   if (capsuleData.image) {
     const canvas = document.getElementById('preview-canvas');
     const ctx = canvas.getContext('2d');
@@ -265,9 +268,7 @@ function populatePreview() {
       }
       
       // Create pixelated effect
-      const pixelSize = 4; // Smaller pixel size for better dithered effect
-      
-      // Calculate dimensions for pixelation
+      const pixelSize = 4;
       const pixelWidth = Math.ceil(drawWidth / pixelSize);
       const pixelHeight = Math.ceil(drawHeight / pixelSize);
       
@@ -279,14 +280,10 @@ function populatePreview() {
       
       // Disable image smoothing for crisp pixels
       tempCtx.imageSmoothingEnabled = false;
-      
-      // Draw image scaled down to create pixelation
       tempCtx.drawImage(img, 0, 0, pixelWidth, pixelHeight);
       
       // Disable smoothing on main canvas
       ctx.imageSmoothingEnabled = false;
-      
-      // Draw the pixelated image back scaled up, centered with proper aspect ratio
       ctx.drawImage(tempCanvas, offsetX, offsetY, drawWidth, drawHeight);
     };
     
@@ -297,21 +294,41 @@ function populatePreview() {
     };
     reader.readAsDataURL(capsuleData.image);
   }
+
+  // Start encryption in the background
+  startEncryptionInBackground();
 }
 
-function confirmPreview() {
-  nextStep(); // Go to encryption step
-}
-
-// =============  STEP 3: ENCRYPTION  =============
-async function startEncryption() {
+async function startEncryptionInBackground() {
+  if (encryptionInProgress || encryptionComplete) {
+    console.log('Encryption already in progress or complete, skipping...');
+    return;
+  }
+  
+  console.log('Starting background encryption...');
+  encryptionInProgress = true;
+  
+  // Show encryption status section
+  const statusSection = document.getElementById('encryption-status-section');
+  if (statusSection) {
+    statusSection.style.display = 'block';
+  }
+  
+  // Disable ciphertext copy initially
+  const copyBtn = document.getElementById('copy-ciphertext-btn');
+  if (copyBtn) {
+    copyBtn.style.color = '#999';
+    copyBtn.style.cursor = 'default';
+    copyBtn.onclick = null;
+  }
+  
   try {
-    document.getElementById('encryption-status').textContent = 'Preparing encryption...';
-    document.getElementById('encryption-progress').style.width = '10%';
+    document.getElementById('preview-encryption-status').textContent = 'Preparing encryption...';
+    document.getElementById('preview-encryption-progress').style.width = '10%';
     
     // 1. Get Shutter identity and encryption metadata from backend
-    document.getElementById('encryption-status').textContent = 'Getting encryption parameters...';
-    const revealTimestamp = Math.floor(Date.now() / 1000) + 60; // 60 seconds from now
+    document.getElementById('preview-encryption-status').textContent = 'Getting encryption parameters...';
+    const revealTimestamp = Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60); // 1 year from now
     
     const fd = new FormData();
     fd.append("title", capsuleData.title);
@@ -319,22 +336,21 @@ async function startEncryption() {
     fd.append("story", capsuleData.story);
     fd.append("image", capsuleData.image);
     fd.append("revealTimestamp", revealTimestamp);
-    
-    const encResponse = await axios.post("http://localhost:5000/submit_capsule", fd, {
+      const encResponse = await window.axios.post("http://localhost:5000/submit_capsule", fd, {
       headers: { "Content-Type": "multipart/form-data" }
     });
     
-    document.getElementById('encryption-progress').style.width = '30%';
+    document.getElementById('preview-encryption-progress').style.width = '30%';
     
     // 2. Wait for Shutter WASM to be ready
-    document.getElementById('encryption-status').textContent = 'Initializing encryption engine...';
+    document.getElementById('preview-encryption-status').textContent = 'Initializing encryption engine...';
     await ensureShutterReady();
     
-    document.getElementById('encryption-progress').style.width = '50%';
-    
-    // 3. Encrypt story
-    document.getElementById('encryption-status').textContent = 'Encrypting story...';
-    const storyHex = "0x" + Buffer.from(capsuleData.story, "utf8").toString("hex");
+    document.getElementById('preview-encryption-progress').style.width = '50%';
+      // 3. Encrypt story
+    document.getElementById('preview-encryption-status').textContent = 'Encrypting story...';
+    const storyHex = "0x" + Array.from(new TextEncoder().encode(capsuleData.story))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
     const sigmaBytes = new Uint8Array(32);
     crypto.getRandomValues(sigmaBytes);
     const sigmaHex = "0x" + Array.from(sigmaBytes).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -346,10 +362,10 @@ async function startEncryption() {
       sigmaHex
     );
     
-    document.getElementById('encryption-progress').style.width = '70%';
+    document.getElementById('preview-encryption-progress').style.width = '70%';
     
     // 4. Encrypt image
-    document.getElementById('encryption-status').textContent = 'Encrypting image...';
+    document.getElementById('preview-encryption-status').textContent = 'Encrypting image...';
     const imgHex = await fileToHex(capsuleData.image);
     const encryptedImg = await window.shutter.encryptData(
       imgHex,
@@ -358,13 +374,13 @@ async function startEncryption() {
       sigmaHex
     );
     
-    document.getElementById('encryption-progress').style.width = '85%';
+    document.getElementById('preview-encryption-progress').style.width = '85%';
     
     // 5. Upload to IPFS
-    document.getElementById('encryption-status').textContent = 'Uploading to IPFS...';
+    document.getElementById('preview-encryption-status').textContent = 'Uploading to IPFS...';
     const uploadResult = await uploadToIPFS(encryptedImg);
     
-    document.getElementById('encryption-progress').style.width = '95%';
+    document.getElementById('preview-encryption-progress').style.width = '95%';
     
     // Save encryption data
     capsuleData.encryptionData = {
@@ -375,26 +391,87 @@ async function startEncryption() {
       pixelatedImage: encResponse.data.pixelatedImage,
       pixelatedId: encResponse.data.pixelatedId
     };
-    
-    // Save pixelated mapping
-    await axios.post("http://localhost:5000/save_pixelated", {
+      // Save pixelated mapping
+    await window.axios.post("http://localhost:5000/save_pixelated", {
       cid: uploadResult.cid,
       preview_id: encResponse.data.pixelatedId
     });
-      document.getElementById('encryption-status').textContent = 'Encryption complete!';
-    document.getElementById('encryption-progress').style.width = '100%';
+      
+    document.getElementById('preview-encryption-status').textContent = 'Encryption complete! Ciphertext ready to copy.';
+    document.getElementById('preview-encryption-progress').style.width = '100%';
     
-    // Show chain submission section
-    document.getElementById('chain-section').style.display = 'block';
+    // Enable ciphertext copy functionality
+    const copyBtn = document.getElementById('copy-ciphertext-btn');
+    copyBtn.style.color = '#4F46E5';
+    copyBtn.style.cursor = 'pointer';
+    copyBtn.onclick = copyCiphertext;
     
-    // Enable submit button
-    document.getElementById('submit-to-chain-btn').disabled = false;
-    document.getElementById('chain-status').textContent = 'Ready to submit to blockchain!';
+    encryptionComplete = true;
+    encryptionInProgress = false;
     
   } catch (error) {
-    console.error('Encryption failed:', error);
-    document.getElementById('encryption-status').textContent = 'Encryption failed: ' + error.message;
-    document.getElementById('encryption-status').style.color = 'red';
+    console.error('Background encryption failed:', error);
+    document.getElementById('preview-encryption-status').textContent = 'Encryption failed: ' + error.message;
+    document.getElementById('preview-encryption-status').style.color = 'red';
+    encryptionInProgress = false;
+  }
+}
+
+function copyCiphertext() {
+  if (!encryptionComplete || !capsuleData.encryptionData) {
+    alert('Encryption is still in progress. Please wait...');
+    return;
+  }
+  
+  const ciphertext = capsuleData.encryptionData.encryptedStory;
+  navigator.clipboard.writeText(ciphertext).then(() => {
+    const copyBtn = document.getElementById('copy-ciphertext-btn');
+    const originalText = copyBtn.textContent;
+    copyBtn.textContent = 'copied!';
+    copyBtn.style.color = '#10B981';
+    setTimeout(() => {
+      copyBtn.textContent = originalText;
+      copyBtn.style.color = '#4F46E5';
+    }, 2000);
+  }).catch(err => {
+    console.error('Failed to copy ciphertext:', err);
+    alert('Failed to copy ciphertext to clipboard');
+  });
+}
+
+function confirmPreview() {
+  if (!encryptionComplete) {
+    alert('Please wait for encryption to complete before proceeding.');
+    return;
+  }
+  nextStep(); // Go to blockchain submission step
+}
+
+// =============  STEP 3: BLOCKCHAIN SUBMISSION  =============
+async function handleStep3() {
+  // Check if wallet is connected
+  if (!walletConnected) {
+    // Show wallet connection section
+    document.getElementById('wallet-connection-section').style.display = 'block';
+    document.getElementById('blockchain-submission-section').style.display = 'none';
+    
+    // Set up wallet connection button
+    document.getElementById('connect-wallet-for-submission').onclick = async () => {
+      const connected = await connectWallet(true);
+      if (connected) {
+        // Hide wallet connection, show blockchain submission
+        document.getElementById('wallet-connection-section').style.display = 'none';
+        document.getElementById('blockchain-submission-section').style.display = 'block';
+        
+        // Start blockchain submission
+        submitToChain();
+      }
+    };
+  } else {
+    // Wallet already connected, proceed with submission
+    document.getElementById('wallet-connection-section').style.display = 'none';
+    document.getElementById('blockchain-submission-section').style.display = 'block';
+    submitToChain();
   }
 }
 
@@ -405,6 +482,11 @@ async function submitToChain() {
       return;
     }
     
+    if (!encryptionComplete) {
+      alert('Please wait for encryption to complete first');
+      return;
+    }
+    
     // Ensure contract is properly initialized with signer
     if (!contract || !signer) {
       console.error('Contract or signer not initialized');
@@ -412,10 +494,7 @@ async function submitToChain() {
       return;
     }
     
-    // Show step 4 (submission progress)
-    nextStep(); // Move to step 4
-    
-    // Update submission status using the correct element IDs from step 4
+    // Update submission status
     const submissionStatus = document.getElementById('submission-status');
     const submissionProgress = document.getElementById('submission-progress');
     const submissionMessage = document.getElementById('submission-message');
@@ -468,20 +547,33 @@ async function submitToChain() {
     // Move to final step with a short delay
     setTimeout(() => {
       populateCompletion();
-      nextStep(); // Move to step 5
-      console.log("Moved to completion step 5");
+      nextStep(); // Move to step 4
+      console.log("Moved to completion step 4");
     }, 1500);
     
   } catch (error) {
     console.error('Blockchain submission failed:', error);
     const submissionStatus = document.getElementById('submission-status');
+    const submissionMessage = document.getElementById('submission-message');
+    
     if (submissionStatus) {
       submissionStatus.textContent = 'Submission failed: ' + error.message;
       submissionStatus.style.color = 'red';
-    }    // Show a retry button or go back to step 3
-    setTimeout(() => {
-      if (confirm('Transaction failed. Would you like to go back and try again?')) {
-        prevStep(); // Go back to step 3
+    }
+    if (submissionMessage) {
+      submissionMessage.textContent = 'Transaction failed. Please try again.';
+      submissionMessage.style.color = 'red';
+    }
+      // Show retry option
+    setTimeout(async () => {
+      if (confirm('Transaction failed. Would you like to try again?')) {
+        // Reset submission UI and retry
+        document.getElementById('submission-status').style.color = '';
+        document.getElementById('submission-message').style.color = '';
+        await submitToChain();
+      } else {
+        // Go back to step 2
+        prevStep();
       }
     }, 2000);
   }
@@ -537,8 +629,18 @@ function createAnother() {
     capsuleId: null
   };
   
+  // Reset encryption state
+  encryptionInProgress = false;
+  encryptionComplete = false;
+  
   // Reset form
   document.getElementById('capsule-form').reset();
+  
+  // Hide encryption status section
+  const statusSection = document.getElementById('encryption-status-section');
+  if (statusSection) {
+    statusSection.style.display = 'none';
+  }
   
   // Go back to step 1
   showStep(1);
@@ -553,16 +655,32 @@ function viewAllCapsules() {
 // Wait for Shutter WASM to be ready
 async function ensureShutterReady() {
   let tries = 0;
+  const maxTries = 200; // Increased from 100
+  
   while (
     (!window.shutter || typeof window.shutter.encryptData !== "function") &&
-    tries < 100
+    tries < maxTries
   ) {
-    await new Promise(res => setTimeout(res, 50));
+    await new Promise(res => setTimeout(res, 100)); // Increased delay from 50ms to 100ms
     tries++;
+    
+    // Log progress every 50 tries
+    if (tries % 50 === 0) {
+      console.log(`Waiting for Shutter WASM... attempt ${tries}/${maxTries}`);
+    }
   }
+  
   if (!window.shutter || typeof window.shutter.encryptData !== "function") {
-    throw new Error("Shutter WASM not loaded!");
+    console.error("Shutter WASM loading failed. Available:", {
+      hasShutter: !!window.shutter,
+      shutterKeys: window.shutter ? Object.keys(window.shutter) : 'N/A',
+      hasBlst: !!window.blst,
+      blstKeys: window.blst ? Object.keys(window.blst) : 'N/A'
+    });
+    throw new Error("Shutter WASM not loaded after extended wait!");
   }
+  
+  console.log("✅ Shutter WASM ready for encryption");
 }
 
 // Helper: convert file to hex string
@@ -573,7 +691,7 @@ async function fileToHex(file) {
 
 // Helper: upload to IPFS via backend
 async function uploadToIPFS(hexData) {
-  const res = await axios.post("http://localhost:5000/upload_ipfs", { hex: hexData });
+  const res = await window.axios.post("http://localhost:5000/upload_ipfs", { hex: hexData });
   return res.data;
 }
 
@@ -630,14 +748,28 @@ window.addEventListener("DOMContentLoaded", async () => {
     
     // Setup event listeners
     setupEventListeners();
-    
-    // Initialize Shutter WASM
+      // Initialize Shutter WASM with retry mechanism
     console.log("Initializing Shutter WASM...");
-    try {
-      await ensureShutterReady();
-      console.log("✅ Shutter WASM ready");
-    } catch (e) {
-      console.warn("⚠️ Shutter WASM not ready yet, will retry when needed:", e.message);
+    let shutterInitTries = 0;
+    const maxShutterTries = 10;
+    
+    while (shutterInitTries < maxShutterTries) {
+      try {
+        await ensureShutterReady();
+        console.log("✅ Shutter WASM ready");
+        break;
+      } catch (e) {
+        shutterInitTries++;
+        console.warn(`⚠️ Shutter WASM init attempt ${shutterInitTries}/${maxShutterTries} failed:`, e.message);
+        
+        if (shutterInitTries >= maxShutterTries) {
+          console.error("❌ Shutter WASM failed to initialize after multiple attempts");
+          console.log("The app will continue but encryption may fail until WASM loads");
+        } else {
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
     }
     
     // Start on step 1
@@ -652,15 +784,17 @@ function setupEventListeners() {
   // Navigation buttons
   document.getElementById('step1-next-btn').onclick = proceedFromStep1;
   document.getElementById('step2-confirm-btn').onclick = confirmPreview;
-  document.getElementById('step3-back-btn').onclick = prevStep;
-  document.getElementById('encrypt-btn').onclick = startEncryption;
-  document.getElementById('submit-to-chain-btn').onclick = submitToChain;
   
   // Final step buttons
-  document.getElementById('share-twitter-btn').onclick = shareOnTwitter;
-  document.getElementById('copy-url-btn').onclick = copyShareUrl;
-  document.getElementById('create-another-btn').onclick = createAnother;
-  document.getElementById('view-all-btn').onclick = viewAllCapsules;
+  const shareTwitterBtn = document.getElementById('share-twitter-btn');
+  const copyUrlBtn = document.getElementById('copy-url-btn');
+  const createAnotherBtn = document.getElementById('create-another-btn');
+  const viewAllBtn = document.getElementById('view-all-btn');
+  
+  if (shareTwitterBtn) shareTwitterBtn.onclick = shareOnTwitter;
+  if (copyUrlBtn) copyUrlBtn.onclick = copyShareUrl;
+  if (createAnotherBtn) createAnotherBtn.onclick = createAnother;
+  if (viewAllBtn) viewAllBtn.onclick = viewAllCapsules;
   
   // Wallet connection
   document.getElementById('connect-wallet-btn').onclick = () => connectWallet(true);

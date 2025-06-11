@@ -601,8 +601,7 @@
     </div>
     
     <!-- Progress Section -->
-    <div class="progress-section">
-      <div class="progress-steps">
+    <div class="progress-section">      <div class="progress-steps">
         <div class="step progress-step active">
           <div class="step-circle">1</div>
           <div class="step-label">Fill story</div>
@@ -613,7 +612,7 @@
         </div>
         <div class="step progress-step">
           <div class="step-circle">3</div>
-          <div class="step-label">Encrypt</div>
+          <div class="step-label">Submit</div>
         </div>
         <div class="step progress-step">
           <div class="step-circle">4</div>
@@ -677,8 +676,7 @@
         
         <div class="preview-content">
           <h2 id="preview-title" class="preview-title">My amazing entry to the Ethereum time capsule</h2>
-          
-          <div class="preview-meta">
+            <div class="preview-meta">
             <div class="meta-item">
               <div class="meta-icon">🔒</div>
               <div class="meta-text">
@@ -690,8 +688,18 @@
               <div class="meta-icon">📄</div>
               <div class="meta-text">
                 <div class="meta-label">copy</div>
-                <div class="meta-value">cyphertext</div>
+                <div class="meta-value" id="copy-ciphertext-btn" style="cursor: pointer; color: #4F46E5;">cyphertext</div>
               </div>
+            </div>
+          </div>
+          
+          <!-- Encryption Status Section -->
+          <div class="encryption-status-section" id="encryption-status-section" style="margin-top: 16px; padding: 12px; background: #f8f9fa; border-radius: 8px; display: none;">
+            <div class="encryption-progress">
+              <div class="progress-bar">
+                <div id="preview-encryption-progress" class="progress-fill" style="width: 0%;"></div>
+              </div>
+              <div id="preview-encryption-status" class="status-text">Starting encryption...</div>
             </div>
           </div>
           
@@ -709,50 +717,26 @@
           This entry will be decrypted on <span class="info-highlight">july 1rst, 2026</span>
         </div>
       </div>
-      
-      <button type="button" id="step2-confirm-btn" class="primary-button">connect your wallet and encrypt</button>
+        <button type="button" id="step2-confirm-btn" class="primary-button">submit to blockchain</button>
     </div>
     
-    <!-- Step 3: Encryption -->
+    <!-- Step 3: Blockchain Submission -->
     <div id="step-3" class="step-container">
-      <div class="form-section">
+      <div class="process-section">
         <div class="step-title" style="margin-bottom: 20px;">
           <div class="step-number-text">Step 3</div>
-          <div class="step-description">Encrypting Your Entry</div>
-        </div>
-        
-        <div class="process-section">
-          <h3>🔐 Encrypting Your Data</h3>
-          <div class="progress-bar">
-            <div id="encryption-progress" class="progress-fill" style="width: 0%;"></div>
-          </div>
-          <div id="encryption-status" class="status-text">Ready to start encryption...</div>
-          <button id="encrypt-btn" class="primary-button">Start Encryption</button>
-        </div>
-        
-        <div class="process-section" id="chain-section" style="display: none;">
-          <h3>⛓️ Submit to Blockchain</h3>
-          <div class="progress-bar">
-            <div id="chain-progress" class="progress-fill" style="width: 0%;"></div>
-          </div>
-          <div id="chain-status" class="status-text">Waiting for encryption to complete...</div>
-          <button id="submit-to-chain-btn" class="primary-button" disabled>Submit to Chain</button>
-        </div>
-      </div>
-      
-      <div class="button-group">
-        <button type="button" id="step3-back-btn" class="secondary-button">Back to Preview</button>
-      </div>
-    </div>
-      <!-- Step 4: Submission Progress -->
-    <div id="step-4" class="step-container">
-      <div class="form-section">
-        <div class="step-title" style="margin-bottom: 20px;">
-          <div class="step-number-text">Step 4</div>
           <div class="step-description">Submitting to Blockchain</div>
         </div>
         
-        <div class="process-section">
+        <!-- Wallet Connection Status -->
+        <div class="wallet-connection-section" id="wallet-connection-section">
+          <h3>🔗 Connect Your Wallet</h3>
+          <div id="wallet-connection-status" class="status-text">Please connect your wallet to continue...</div>
+          <button id="connect-wallet-for-submission" class="primary-button">Connect Wallet</button>
+        </div>
+        
+        <!-- Blockchain Submission Progress -->
+        <div class="blockchain-submission-section" id="blockchain-submission-section" style="display: none;">
           <h3>⛓️ Blockchain Submission</h3>
           <div class="progress-bar">
             <div id="submission-progress" class="progress-fill" style="width: 0%;"></div>
@@ -763,13 +747,11 @@
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Step 5: Completion -->
-    <div id="step-5" class="step-container">
-      <div class="form-section">
+    </div>    
+    <!-- Step 4: Completion -->
+    <div id="step-4" class="step-container">      <div class="form-section">
         <div class="step-title" style="margin-bottom: 20px;">
-          <div class="step-number-text">Step 5</div>
+          <div class="step-number-text">Step 4</div>
           <div class="step-description">Capsule Created Successfully!</div>
         </div>
         
@@ -812,15 +794,16 @@
       </div>
     </div>
 
-  </div>
-
-  <!-- Scripts -->
+  </div>  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/buffer@6.0.3/index.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@shutter-network/blst@0.1.7/dist/blst.min.js"></script>
   <script src="blst.js"></script>
-  <script src="encryptDataBlst.js"></script>
+  <script type="module" src="encryptDataBlst.js"></script>
   <script type="module" src="main.js"></script>
-  <script type="module" src="app.js"></script>  <script>
+  <script src="app.js"></script><script>
     // Handle file upload change event
     document.addEventListener('DOMContentLoaded', function() {
       const fileInput = document.querySelector('#entry-image');
