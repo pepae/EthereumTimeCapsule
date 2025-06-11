@@ -354,20 +354,22 @@ function renderCapsules(capsules) {
 function createCapsuleCard(capsule) {
   const card = document.createElement('div');
   card.className = 'capsule-card-gallery';
+  card.setAttribute('data-capsule-id', capsule.id); // Add unique identifier
   
   const isRevealed = capsule.isRevealed;
   const revealTime = new Date(capsule.revealTime * 1000);
   const creator = `${capsule.creator.slice(0, 6)}...${capsule.creator.slice(-4)}`;
-  
-  // Determine image source
+    // Determine image source
   let imageSrc;
   if (isRevealed) {
     imageSrc = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjBmMGYwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkRlY3J5cHRpbmcuLi48L3RleHQ+PC9zdmc+"; // Placeholder for decrypted image
   } else {
-    imageSrc = `http://localhost:5000/pixelated/${capsule.imageCID}`; // Pixelated preview
+    // Add timestamp to prevent caching issues
+    const timestamp = Date.now();
+    imageSrc = `http://localhost:5000/pixelated/${capsule.imageCID}?t=${timestamp}`;
+    console.log(`Setting pixelated image src for capsule #${capsule.id}: ${imageSrc}`);
   }
-  
-  card.innerHTML = `
+    card.innerHTML = `
     <div class="capsule-header">
       <div class="capsule-id">ID #${capsule.id}</div>
       <div class="capsule-status ${isRevealed ? 'status-revealed' : 'status-locked'}">
@@ -375,7 +377,8 @@ function createCapsuleCard(capsule) {
       </div>
     </div>
     
-    <img src="${imageSrc}" alt="Capsule image" class="capsule-image" loading="lazy">
+    <img src="${imageSrc}" alt="Capsule image" class="capsule-image" loading="lazy" 
+         onerror="console.error('Failed to load image for capsule #${capsule.id}:', this.src); this.style.display='none';">
     
     <div class="capsule-title">${capsule.title}</div>
     
@@ -575,24 +578,39 @@ async function decryptAndDisplayImage(capsuleId, imageCID, shutterIdentity) {
       decryptedImageHex.slice(2).match(/.{2}/g).map(byte => parseInt(byte, 16))
     );
     const imageBlob = new Blob([decryptedImageBytes]);
-    const imageUrl = URL.createObjectURL(imageBlob);    // Find and update the image
+    const imageUrl = URL.createObjectURL(imageBlob);    // Find and update the image using data attribute for precise matching
     console.log(`Looking for capsule card with ID #${capsuleId}...`);
-    const capsuleCards = document.querySelectorAll('.capsule-card-gallery');
-    console.log(`Found ${capsuleCards.length} capsule cards`);
+    const targetCard = document.querySelector(`[data-capsule-id="${capsuleId}"]`);
     
-    for (const card of capsuleCards) {
-      const capsuleIdElement = card.querySelector('.capsule-id');
-      if (capsuleIdElement) {
-        console.log(`Checking card with text: "${capsuleIdElement.textContent}"`);
-        if (capsuleIdElement.textContent.includes(`#${capsuleId}`)) {
-          console.log(`Found matching card for capsule #${capsuleId}!`);
+    if (targetCard) {
+      console.log(`Found exact matching card for capsule #${capsuleId}!`);
+      const img = targetCard.querySelector('.capsule-image');
+      if (img) {
+        // Clean up previous object URL to prevent memory leaks
+        if (img.src.startsWith('blob:')) {
+          URL.revokeObjectURL(img.src);
+        }
+        img.src = imageUrl;
+        img.alt = "Decrypted image";
+        console.log(`✅ Successfully decrypted and displayed image for capsule #${capsuleId}`);
+      } else {
+        console.warn(`Image element not found in card for capsule #${capsuleId}`);
+      }
+    } else {
+      console.warn(`No card found for capsule ID #${capsuleId}`);
+      // Fallback to the old method if data attribute fails
+      const capsuleCards = document.querySelectorAll('.capsule-card-gallery');
+      for (const card of capsuleCards) {
+        const capsuleIdElement = card.querySelector('.capsule-id');
+        if (capsuleIdElement && capsuleIdElement.textContent.trim() === `ID #${capsuleId}`) {
           const img = card.querySelector('.capsule-image');
           if (img) {
+            if (img.src.startsWith('blob:')) {
+              URL.revokeObjectURL(img.src);
+            }
             img.src = imageUrl;
             img.alt = "Decrypted image";
-            console.log(`✅ Successfully decrypted and displayed image for capsule #${capsuleId}`);
-          } else {
-            console.warn(`Image element not found in card for capsule #${capsuleId}`);
+            console.log(`✅ Successfully decrypted and displayed image for capsule #${capsuleId} (fallback method)`);
           }
           break;
         }
