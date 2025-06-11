@@ -1,6 +1,6 @@
 ## Ethereum Time Capsule
 
-*Shutter-encrypted commit-and-reveal DApp on Gnosis Chain with Mobile-First Design*
+*Shutter-encrypted commit-and-reveal DApp with Mobile-First Design*
 
 ---
 
